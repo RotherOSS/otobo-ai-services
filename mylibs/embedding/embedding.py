@@ -30,16 +30,22 @@ def embedding_function():
         return SefHostedEmbeddingFunction()
 
 
-def get_client():
+def get_dbclient():
     """Helper function to always use the same Chroma client"""
-    return chromadb.HttpClient(
-        host=settings.CHROMADB_HOST,
-        port=settings.CHROMADB_PORT,
-        settings=DbSettings(
-            chroma_client_auth_provider="chromadb.auth.token.TokenAuthClientProvider",
-            chroma_client_auth_credentials=settings.CHROMADB_API_KEY,
-        ),
-    )
+    if settings.CHROMADB_API_KEY is None:
+        return chromadb.HttpClient(
+            host=settings.CHROMADB_HOST,
+            port=settings.CHROMADB_PORT,
+        )
+    else:
+        return chromadb.HttpClient(
+            host=settings.CHROMADB_HOST,
+            port=settings.CHROMADB_PORT,
+            settings=DbSettings(
+                chroma_client_auth_provider="chromadb.auth.token.TokenAuthClientProvider",
+                chroma_client_auth_credentials=settings.CHROMADB_API_KEY,
+            ),
+        )
 
 
 def get_meta(ticket: Ticket):
@@ -72,7 +78,7 @@ def get_heartbeat():
         int: The current time in nanoseconds since epoch
     """
     try:
-        return get_client().heartbeat()
+        return get_dbclient().heartbeat()
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
@@ -91,7 +97,7 @@ def get_embedding(id: str) -> GetResult:
         GetResult: A GetResult object containing the results.
     """ """"""
     try:
-        client = get_client()
+        client = get_dbclient()
         collection = client.get_collection(name=settings.CHROMADB_COLLECTION)
         embedding = collection.get(ids=id, include=["documents", "metadatas"])
         return embedding
@@ -126,7 +132,7 @@ def get_embeddings(
         GetResult: A GetResult object containing the results.
     """ """"""
     try:
-        client = get_client()
+        client = get_dbclient()
         collection = client.get_collection(name=settings.CHROMADB_COLLECTION)
         where: Where | None
         if process_id is not None:
@@ -170,7 +176,7 @@ def query_embeddings(
         QueryResult: _description_
     """
     try:
-        client = get_client()
+        client = get_dbclient()
         collection = client.get_collection(
             name=settings.CHROMADB_COLLECTION, embedding_function=embedding_function()
         )
@@ -206,7 +212,7 @@ async def put_embeddings(tickets: List[Ticket]):
 
     all_ids = []
     try:
-        client = get_client()
+        client = get_dbclient()
         collection = client.get_or_create_collection(
             name=settings.CHROMADB_COLLECTION,
             embedding_function=embedding_function(),
@@ -252,7 +258,7 @@ def delete_embedding(id: str):
         str: deleted id
     """
     try:
-        client = get_client()
+        client = get_dbclient()
         collection = client.get_collection(name=settings.CHROMADB_COLLECTION)
         collection.delete(ids=[id])
         return {"id": id}
@@ -281,7 +287,7 @@ def delete_embeddings(
         List[str] | None: given list of ids
     """ """"""
     try:
-        client = get_client()
+        client = get_dbclient()
         collection = client.get_collection(name=settings.CHROMADB_COLLECTION)
         collection.delete(
             ids=ids,

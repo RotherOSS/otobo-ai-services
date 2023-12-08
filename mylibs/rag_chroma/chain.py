@@ -1,5 +1,3 @@
-import chromadb
-from chromadb.config import Settings as DbSettings
 from langchain.llms.together import Together
 from langchain.prompts import ChatPromptTemplate
 from langchain.pydantic_v1 import BaseModel
@@ -8,25 +6,11 @@ from langchain.schema.runnable import RunnableParallel, RunnablePassthrough
 from langchain.vectorstores.chroma import Chroma
 from langchain.embeddings import HuggingFaceBgeEmbeddings
 from mylibs.classes.AppSettings import AppSettings
+from mylibs.embedding.embedding import get_dbclient
 
 settings = AppSettings()
 
-client = chromadb.HttpClient(
-    host=settings.CHROMADB_HOST,
-    port=settings.CHROMADB_PORT,
-    settings=DbSettings(
-        chroma_client_auth_provider="chromadb.auth.token.TokenAuthClientProvider",
-        chroma_client_auth_credentials=settings.CHROMADB_API_KEY,
-    ),
-)
-
-
-client.heartbeat()  # this should work with or without authentication - it is a public endpoint
-
-client.get_version()  # this should work with or without authentication - it is a public endpoint
-
-client.list_collections()  # this is a protected endpoint and requires authentication
-
+client = get_dbclient()
 
 if settings.use_huggingface:
     from langchain.embeddings import HuggingFaceInferenceAPIEmbeddings
@@ -104,9 +88,9 @@ prompt = ChatPromptTemplate.from_template(template)
 # LLM
 if settings.use_together:
     model = Together(
-        model=settings.getenv("TOGETHERAI_MODEL", ""),  # type: ignore
-        together_api_key=settings.getenv("TOGETHERAI_API_KEY", ""),  # type: ignore
-        max_tokens=512,
+        model=settings.TOGETHERAI_MODEL,  # type: ignore
+        together_api_key=settings.TOGETHERAI_API_KEY,  # type: ignore
+        max_tokens=2048,
         temperature=0.1,
     )
 else:
