@@ -165,7 +165,17 @@ Ist der Docker des API-Servers gestartet, können Sie auf den\
 [Swagger](http://127.0.0.1:8000/docs#/) (http://127.0.0.1:8000/docs#/)\
 falls unter dieser Adresse und Port gestartet - zugreifen.
 
-### Hinweis
+# Entwicklung
+
+1. Download von git
+1. Virtuelle Umgebung einrichten
+1. `.env` erzeugen
+1. Umgebungsvariablen setzen
+1. Server starten
+
+### Virtuelle Umgebung einrichten in VS Code
+
+\<strg> + \<shift> + p: Python:Create vitual enviroment wählen, dann venv, dann Interpreter, dann pyproject.toml eingeben. Installation aller Pakete startet parallel im Hintergrund. Abwarten, bis alles installiert ist, dann erst starten.
 
 Aus der Entwicklungsumgebung startet der Server mit:
 
@@ -173,7 +183,9 @@ Aus der Entwicklungsumgebung startet der Server mit:
 langchain serve
 ```
 
-Beispiel eines Aufrufs mit Auth:
+Beenden mit \<strg> + c
+
+Beispiel eines Aufrufs durch einen Client mit Auth:
 
 ```bash
 import requests

@@ -65,15 +65,19 @@ class AppSettings:
         self.SERVER_PORT = int(os.getenv("SERVER_PORT", "8080"))
         self.CHROMADB_HOST = os.getenv("CHROMADB_HOST", "localhost")
         self.CHROMADB_PORT = os.getenv("CHROMADB_PORT", "8000")
-        self.CHROMADB_API_KEY = os.getenv("CHROMADB_API_KEY")
+        self.CHROMADB_API_KEY = os.getenv("CHROMADB_API_KEY", None)
         self.CHROMADB_COLLECTION = os.getenv("CHROMADB_COLLECTION", "documents")
         self.LLL_OLLAMA_URL = os.getenv(
             "LLL_OLLAMA_URL", "http://localhost:11434"
         )  # ToDo default value???
         self.LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "1024"))
         self.LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.1"))
-        self.REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN", "")
-        self.HUGGINGFACEHUB_API_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN", "")
+        self.REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN", None)
+
+        self.TOGETHERAI_API_KEY = os.getenv("TOGETHERAI_API_KEY", None)
+        self.TOGETHERAI_MODEL = os.getenv("TOGETHERAI_MODEL", None)
+
+        self.HUGGINGFACEHUB_API_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN", None)
         self.use_huggingface = os.getenv("USE_HUGGINGFACE", "False").lower() in [
             "true",
             "1",
@@ -110,6 +114,26 @@ class AppSettings:
             if os.getenv("RAG_FILTER", "") != ""
             else {"k": int(os.getenv("RAG_K", "3"))}
         )
+
+        self.check_envs()
+
+    def check_envs(self):
+        """checks if all necesarry varables are set"""
+        # ToDo: check them
+        if os.getenv("API_KEY") is None:
+            raise ValueError("Enviroment variable 'API_KEY' must be set.")
+
+        if self.use_huggingface:
+            if self.HUGGINGFACEHUB_API_TOKEN is None:
+                raise ValueError(
+                    "If 'USE_HUGGINGFACE' is true enviroment variable 'HUGGINGFACEHUB_API_TOKEN' must be set."
+                )
+
+        if self.use_together:
+            if self.TOGETHERAI_API_KEY is None or self.TOGETHERAI_MODEL is None:
+                raise ValueError(
+                    "If 'USE_TOGETHER' is true enviroment variable 'TOGETHERAI_API_KEY' and 'TOGETHERAI_MODEL' must be set."
+                )
 
     def getenv(self, key: str, default=None):
         return os.getenv(key, default)
