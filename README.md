@@ -1,4 +1,4 @@
-# OTOBO-TAS
+# OTOBO-AI
 
 Ticket Answering Service
 
