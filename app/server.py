@@ -154,8 +154,6 @@ def delete_many(
     )
 
 
-# ToDo: Check all envs. The error messages are not that meaningful
-
 if __name__ == "__main__":
     import uvicorn
 

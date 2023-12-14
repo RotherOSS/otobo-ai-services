@@ -119,7 +119,6 @@ class AppSettings:
 
     def check_envs(self):
         """checks if all necesarry varables are set"""
-        # ToDo: check them
         if os.getenv("API_KEY") is None:
             raise ValueError("Enviroment variable 'API_KEY' must be set.")
 

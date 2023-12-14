@@ -51,10 +51,10 @@ nur DB
 docker run -p 8000:8000 chromadb/chroma
 ```
 
-oder im Netzwerk
+oder im Netzwerk mit `network alias` und `named volume`
 
 ```bash
-docker run -p 8000:8000 --network otobo_tas chromadb/chroma
+docker run -p 8000:8000 --network otobo_tas --network-alias chromaserver -v chroma-data:/chroma/chroma --name chromaserver chromadb/chroma
 ```
 
 oder mit API-Key Auth und Netzwerk ("test-token" durch entsprechenden Wert ersetzen)
@@ -62,6 +62,8 @@ oder mit API-Key Auth und Netzwerk ("test-token" durch entsprechenden Wert erset
 ```bash
 docker run -p 8000:8000
 --network otobo_tas
+--network-alias chromaserver
+-v chroma-data:/chroma/chroma
 --env=CHROMA_SERVER_AUTH_CREDENTIALS=test-token
 --env=CHROMA_SERVER_AUTH_CREDENTIALS_PROVIDER=chromadb.auth.token.TokenConfigServerAuthCredentialsProvider
 --env=CHROMA_SERVER_AUTH_PROVIDER=chromadb.auth.token.TokenAuthServerProvider
@@ -135,7 +137,7 @@ docker run -d -e API_KEY=ServiceApiKey -e CHROMADB_API_KEY=databaseToken -e CHRO
 
 1. ServiceApiKey: Frei definierbarer Token, der später für den Aufruf
 1. databaseToken: CHROMA_SERVER_AUTH_CREDENTIALS, sh oben
-1. ipDatenbankInDockerNetwork: Ip des Datenbankservers im virtuellen Netzwerk
+1. ipDatenbankInDockerNetwork: Ip des Datenbankservers im virtuellen Netzwerk oder `network alias`
 1. <image-id (Anfang...)>: Docker-Image-Id
 
 ### Installation Sprachmodell Llama2

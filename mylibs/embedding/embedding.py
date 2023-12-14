@@ -26,7 +26,7 @@ def embedding_function():
             model_name=settings.embedding_model_name,
         )
     else:
-        # todo
+        # todo Llama?
         return SefHostedEmbeddingFunction()
 
 
@@ -208,7 +208,7 @@ async def put_embeddings(tickets: List[Ticket]):
     Returns:
         List[str]: created ids
     """ """"""
-    # ToDo: add datetime
+    # Idea: add datetime
 
     all_ids = []
     try:
