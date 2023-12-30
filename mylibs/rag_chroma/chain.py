@@ -23,6 +23,10 @@ else:
     # Self hosted embedding model (+2GB ram)
     embedding = HuggingFaceBgeEmbeddings(model_name=settings.embedding_model_name)
 
+    # from langchain.embeddings import OllamaEmbeddings
+    # sh: https://python.langchain.com/docs/integrations/llms/ollama
+    # embedding = OllamaEmbeddings(base_url="http://host:port", model="llama2")
+
 
 vectorstore = Chroma(
     collection_name=settings.CHROMADB_COLLECTION, embedding_function=embedding, client=client  # type: ignore
