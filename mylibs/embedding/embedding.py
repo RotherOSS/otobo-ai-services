@@ -63,7 +63,7 @@ def get_meta(ticket: Ticket):
         "topic": ticket.topic,
         "type": ticket.type,
         "len": ticket.len,
-        "document": ticket.document,
+        # "document": ticket.document,
     }
     return meta
 
