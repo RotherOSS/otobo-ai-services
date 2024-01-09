@@ -36,7 +36,7 @@ async def redirect_root_to_docs():
 
 
 @app.get(
-    "/db/heartbeat",
+    "/ai/db/heartbeat",
     description="Get the current time in nanoseconds since epoch. Used to check if the database server is alive.",
 )
 def heartbeat():
@@ -51,7 +51,7 @@ class Question(BaseModel):
 
 
 @app.post(
-    "/tas/create-answer",
+    "/ai/tas/create-answer",
     name="Invoke LLM",
     description="Answers the submitted question using the stored data records.",
     dependencies=[Depends(get_api_key)],
@@ -65,7 +65,7 @@ def rag(body: Question):
 
 
 @app.post(
-    "/embedding/filter/",
+    "/ai/embedding/filter/",
     name="Invoke many",
     description="""Get embedded data by search.\n
     At least one of the optional parameters 'ids' and 'process_id' must be specified.\n
@@ -89,7 +89,7 @@ def filter(
 
 
 @app.post(
-    "/embedding/query/",
+    "/ai/embedding/query/",
     name="Query Embedding",
     description="""Get embedded data by text-search.\n
     query_texts - The document texts to get the closes neighbors of. Optional. \n
@@ -110,7 +110,7 @@ def post_query(
 
 
 @app.get(
-    "/embedding/invoke/{id}",
+    "/ai/embedding/invoke/{id}",
     name="Get",
     description="Get embedded data by id.",
     dependencies=[Depends(get_api_key)],
@@ -120,7 +120,7 @@ def get(id: str):
 
 
 @app.put(
-    "/embedding/insert/",
+    "/ai/embedding/insert/",
     name="Insert",
     description="Put list of embed datas into db, chunks and creates vectors.",
     dependencies=[Depends(get_api_key)],
@@ -130,7 +130,7 @@ async def put(embeds: List[Ticket]):
 
 
 @app.delete(
-    "/embedding/delete/{id}",
+    "/ai/embedding/delete/{id}",
     name="Delete",
     description="Delete embedded data by id.",
     dependencies=[Depends(get_api_key)],
@@ -140,7 +140,7 @@ def delete(id: str):
 
 
 @app.post(
-    "/embedding/delete-many/",
+    "/ai/embedding/delete-many/",
     name="Delete Many",
     description="Delete embedded data by filter.\nAt least one of the optional parameters 'ids', 'where' must be specified.",
 )
