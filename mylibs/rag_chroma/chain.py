@@ -102,7 +102,7 @@ else:
     from langchain.llms.ollama import Ollama
 
     model = Ollama(
-        baseUrl=settings.LLL_OLLAMA_URL, model="llama2", num_gpu=1, temperature=0.1
+        base_url=settings.LLL_OLLAMA_URL, model="llama2", num_gpu=1, temperature=0.1
     )
 
 
