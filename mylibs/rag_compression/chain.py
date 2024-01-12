@@ -67,7 +67,7 @@ prompt = ChatPromptTemplate.from_template(template)
 model = Ollama(
     base_url=settings.LLM_OLLAMA_URL,
     model=settings.LLM_OLLAMA_MODEL,
-    temperature=0.1,
+    temperature=settings.LLM_TEMPERATURE,
 )
 
 # RAG chain. Hint: wrtitten in LangChain Expression Language (LCEL)

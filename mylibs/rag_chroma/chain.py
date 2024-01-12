@@ -97,7 +97,7 @@ if settings.use_together:
         model=settings.TOGETHERAI_MODEL,  # type: ignore
         together_api_key=settings.TOGETHERAI_API_KEY,  # type: ignore
         max_tokens=2048,
-        temperature=0.1,
+        temperature=settings.LLM_TEMPERATURE,
     )
 else:
     # Ollama
@@ -106,7 +106,7 @@ else:
     model = Ollama(
         base_url=settings.LLM_OLLAMA_URL,
         model=settings.LLM_OLLAMA_MODEL,
-        temperature=0.1,
+        temperature=settings.LLM_TEMPERATURE,
     )
 
 
