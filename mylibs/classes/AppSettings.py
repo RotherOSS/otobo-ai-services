@@ -67,11 +67,14 @@ class AppSettings:
         self.CHROMADB_PORT = os.getenv("CHROMADB_PORT", "8000")
         self.CHROMADB_API_KEY = os.getenv("CHROMADB_API_KEY", None)
         self.CHROMADB_COLLECTION = os.getenv("CHROMADB_COLLECTION", "documents")
-        self.LLL_OLLAMA_URL = os.getenv(
-            "LLL_OLLAMA_URL", "http://localhost:11434"
+        self.LLM_OLLAMA_URL = os.getenv(
+            "LLM_OLLAMA_URL", "http://localhost:11434"
         )  # ToDo default value???
+        self.LLM_OLLAMA_MODEL = os.getenv("LLM_OLLAMA_MODEL", "llama2:13b")
+
         self.LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "1024"))
         self.LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.1"))
+        self.SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.75"))
         self.REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN", None)
 
         self.TOGETHERAI_API_KEY = os.getenv("TOGETHERAI_API_KEY", None)

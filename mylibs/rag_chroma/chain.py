@@ -4,9 +4,11 @@ from langchain.pydantic_v1 import BaseModel
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import RunnableParallel, RunnablePassthrough
 from langchain.vectorstores.chroma import Chroma
-from langchain.embeddings import HuggingFaceBgeEmbeddings
+
+# from langchain.embeddings import HuggingFaceBgeEmbeddings
 from mylibs.classes.AppSettings import AppSettings
 from mylibs.embedding.embedding import get_dbclient
+from langchain.embeddings import OllamaEmbeddings
 
 settings = AppSettings()
 
@@ -21,11 +23,11 @@ if settings.use_huggingface:
     )
 else:
     # Self hosted embedding model (+2GB ram)
-    embedding = HuggingFaceBgeEmbeddings(model_name=settings.embedding_model_name)
+    # embedding = HuggingFaceBgeEmbeddings(model_name=settings.embedding_model_name)
 
-    # from langchain.embeddings import OllamaEmbeddings
-    # sh: https://python.langchain.com/docs/integrations/llms/ollama
-    # embedding = OllamaEmbeddings(base_url="http://host:port", model="llama2")
+    embedding = OllamaEmbeddings(
+        base_url=settings.LLM_OLLAMA_URL, model=settings.LLM_OLLAMA_MODEL
+    )
 
 
 vectorstore = Chroma(
@@ -102,7 +104,9 @@ else:
     from langchain.llms.ollama import Ollama
 
     model = Ollama(
-        base_url=settings.LLL_OLLAMA_URL, model="llama2", num_gpu=1, temperature=0.1
+        base_url=settings.LLM_OLLAMA_URL,
+        model=settings.LLM_OLLAMA_MODEL,
+        temperature=0.1,
     )
 
 

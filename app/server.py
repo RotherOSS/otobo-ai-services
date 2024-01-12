@@ -5,6 +5,7 @@ from fastapi.responses import RedirectResponse
 from langchain.pydantic_v1 import BaseModel
 from mylibs.auth.auth import get_api_key
 from mylibs.rag_chroma.chain import chain as rag_chroma_chain
+from mylibs.rag_compression.chain import chain as rag_compression_chain
 from mylibs.classes.AppSettings import AppSettings
 from mylibs.embedding.embedding import (
     Ticket,
@@ -59,6 +60,20 @@ class Question(BaseModel):
 def rag(body: Question):
     try:
         return rag_chroma_chain.invoke(body.question)
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post(
+    "/ai/tas/compression",
+    name="Contextual compression",
+    description="Answers the submitted question using the stored data records and contextual compression",
+    dependencies=[Depends(get_api_key)],
+)
+def rag(body: Question):
+    try:
+        return rag_compression_chain.invoke(body.question)
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
