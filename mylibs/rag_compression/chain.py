@@ -21,7 +21,7 @@ embedding = OllamaEmbeddings(
 )
 
 vectorstore = Chroma(
-    collection_name=settings.CHROMADB_COLLECTION, embedding_function=embedding, client=client  # type: ignore
+    collection_name=settings.AI_VECTORSTORE_INDEX, embedding_function=embedding, client=client  # type: ignore
 )
 
 # ToDo: Optimize here:

@@ -32,18 +32,18 @@ def embedding_function():
 
 def get_dbclient():
     """Helper function to always use the same Chroma client"""
-    if settings.CHROMADB_API_KEY is None:
+    if settings.AI_VECTORDB_AUTH_TOKEN is None:
         return chromadb.HttpClient(
-            host=settings.CHROMADB_HOST,
-            port=settings.CHROMADB_PORT,
+            host=settings.AI_VECTORDB_HOST,
+            port=settings.AI_VECTORDB_PORT,
         )
     else:
         return chromadb.HttpClient(
-            host=settings.CHROMADB_HOST,
-            port=settings.CHROMADB_PORT,
+            host=settings.AI_VECTORDB_HOST,
+            port=settings.AI_VECTORDB_PORT,
             settings=DbSettings(
                 chroma_client_auth_provider="chromadb.auth.token.TokenAuthClientProvider",
-                chroma_client_auth_credentials=settings.CHROMADB_API_KEY,
+                chroma_client_auth_credentials=settings.AI_VECTORDB_AUTH_TOKEN,
             ),
         )
 
@@ -98,7 +98,7 @@ def get_embedding(id: str) -> GetResult:
     """ """"""
     try:
         client = get_dbclient()
-        collection = client.get_collection(name=settings.CHROMADB_COLLECTION)
+        collection = client.get_collection(name=settings.AI_VECTORSTORE_INDEX)
         embedding = collection.get(ids=id, include=["documents", "metadatas"])
         return embedding
     except Exception as e:
@@ -133,7 +133,7 @@ def get_embeddings(
     """ """"""
     try:
         client = get_dbclient()
-        collection = client.get_collection(name=settings.CHROMADB_COLLECTION)
+        collection = client.get_collection(name=settings.AI_VECTORSTORE_INDEX)
         where: Where | None
         if process_id is not None:
             where = {"process_id": process_id}
@@ -178,7 +178,7 @@ def query_embeddings(
     try:
         client = get_dbclient()
         collection = client.get_collection(
-            name=settings.CHROMADB_COLLECTION, embedding_function=embedding_function()
+            name=settings.AI_VECTORSTORE_INDEX, embedding_function=embedding_function()
         )
         result = collection.query(
             query_embeddings=None,
@@ -214,7 +214,7 @@ async def put_embeddings(tickets: List[Ticket]):
     try:
         client = get_dbclient()
         collection = client.get_or_create_collection(
-            name=settings.CHROMADB_COLLECTION,
+            name=settings.AI_VECTORSTORE_INDEX,
             embedding_function=embedding_function(),
         )
         text_splitter = RecursiveCharacterTextSplitter(
@@ -259,7 +259,7 @@ def delete_embedding(id: str):
     """
     try:
         client = get_dbclient()
-        collection = client.get_collection(name=settings.CHROMADB_COLLECTION)
+        collection = client.get_collection(name=settings.AI_VECTORSTORE_INDEX)
         collection.delete(ids=[id])
         return {"id": id}
     except Exception as e:
@@ -288,7 +288,7 @@ def delete_embeddings(
     """ """"""
     try:
         client = get_dbclient()
-        collection = client.get_collection(name=settings.CHROMADB_COLLECTION)
+        collection = client.get_collection(name=settings.AI_VECTORSTORE_INDEX)
         collection.delete(
             ids=ids,
             where=where,

@@ -2,12 +2,17 @@ from langchain.llms.together import Together
 from langchain.prompts import ChatPromptTemplate
 from langchain.pydantic_v1 import BaseModel
 from langchain.schema.output_parser import StrOutputParser
-from langchain.schema.runnable import RunnableParallel, RunnablePassthrough
+from langchain.schema.runnable import (
+    RunnableLambda,
+    RunnableParallel,
+    RunnablePassthrough,
+)
 from langchain.vectorstores.chroma import Chroma
 
 # from langchain.embeddings import HuggingFaceBgeEmbeddings
 from mylibs.classes.AppSettings import AppSettings
 from mylibs.embedding.embedding import get_dbclient
+from mylibs.utils.utils import get_content, get_prompt
 from langchain.embeddings import OllamaEmbeddings
 
 settings = AppSettings()
@@ -31,42 +36,13 @@ else:
 
 
 vectorstore = Chroma(
-    collection_name=settings.CHROMADB_COLLECTION, embedding_function=embedding, client=client  # type: ignore
+    collection_name=settings.AI_VECTORSTORE_INDEX, embedding_function=embedding, client=client  # type: ignore
 )
 
 # ToDo: Optimize here:
 # depending on the chunk bigger k?
 # actually only embeddings with type answer are used by the llm
 retriever = vectorstore.as_retriever(search_kwargs=settings.rag_search_kwargs)
-
-# ToDo: Optimize here
-# * Rephrase the prompt
-# * is an instruction in english better?
-# * Play with SYS-Prompt and Instruction
-#
-# # or use something like this:
-
-B_INST, E_INST = "[INST]", "[/INST]"
-B_SYS, E_SYS = "<<SYS>>\n", "\n<</SYS>>\n\n"
-DEFAULT_SYSTEM_PROMPT = """
-You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe. Your answers should not include any harmful, unethical, racist, sexist, toxic, dangerous, or illegal content. Please ensure that your responses are socially unbiased and positive in nature.
-
-If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information."""
-
-
-def get_prompt(instruction: str, new_system_prompt: str = DEFAULT_SYSTEM_PROMPT) -> str:
-    """just puts everything together
-
-    Args:
-        instruction (str): instruction
-        new_system_prompt (str, optional): system prompt. Defaults to DEFAULT_SYSTEM_PROMPT.
-
-    Returns:
-        str: complete llama prompt
-    """ """"""
-    SYSTEM_PROMPT = B_SYS + new_system_prompt + E_SYS
-    prompt_template = B_INST + SYSTEM_PROMPT + instruction + E_INST
-    return prompt_template
 
 
 sys_prompt = """Sie sind ein hilfsbereiter, respektvoller und ehrlicher Assistent. Antworten Sie immer auf Deutsch, so hilfreich wie möglich und verwenden Sie den vorgegebenen Kontexttext. Ihre Antworten sollten die Frage nur einmal beantworten und nach der Antwort keinen weiteren Text enthalten.
@@ -112,7 +88,12 @@ else:
 
 # RAG chain. Hint: wrtitten in LangChain Expression Language (LCEL)
 chain = (
-    RunnableParallel({"context": retriever, "question": RunnablePassthrough()})
+    RunnableParallel(
+        {
+            "context": retriever | RunnableLambda(get_content),
+            "question": RunnablePassthrough(),
+        }
+    )
     | prompt
     | model
     | StrOutputParser()

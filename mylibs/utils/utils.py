@@ -1,5 +1,12 @@
 def get_content(retriever_docs):
-    # lambda d: d["page_content"]
+    """Filters the result of a retriever
+
+    Args:
+        retriever_docs (List[Document]): result of retriever
+
+    Returns:
+        List[str]: List of result text
+    """
     docs = []
     for doc in retriever_docs:
         content = doc.dict()["page_content"]

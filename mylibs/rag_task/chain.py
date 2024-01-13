@@ -36,20 +36,30 @@ class SupportRetriever(VectorStoreRetriever):
     search_kwargs: dict = Field(default_factory=dict)
 
     def get_relevant_documents(self, query: str) -> List[Document]:
+        """Retrieves all chunks of the 1-3 most relevant task.
+        Determines the most relevant task by embedding the query and comparing it to the embedding of all tasks.
+        Then retrieves all text chunks of the most relevant task.
+
+        Args:
+            query (str): the query given by the user
+
+        Returns:
+            List[Document]: list of all text chunks (maybe including overlapping)
+        """
         get_task_result = query_embeddings(
             query_texts=[query],
             # where={"type": "question"},
             n_results=3,
             include=["metadatas"],
         )
-        ids = [el["gdpr_id"] for el in get_task_result["metadatas"][0]]  # type: ignore
+        ids = [el["process_id"] for el in get_task_result["metadatas"][0]]  # type: ignore
         ids = list(dict.fromkeys(ids))  # remove duplicates
 
         collection = client.get_collection(
-            name=settings.CHROMADB_COLLECTION, embedding_function=embedding_function()
+            name=settings.AI_VECTORSTORE_INDEX, embedding_function=embedding_function()
         )
 
-        where: Where = {"gdpr_id": {"$in": ids}}
+        where: Where = {"process_id": {"$in": ids}}
         get_all_result = collection.get(where=where, include=["documents"])
 
         docs: List[Document] = []
@@ -69,7 +79,7 @@ embedding = OllamaEmbeddings(
 
 
 vectorstore = Chroma(
-    collection_name=settings.CHROMADB_COLLECTION, embedding_function=embedding, client=client  # type: ignore
+    collection_name=settings.AI_VECTORSTORE_INDEX, embedding_function=embedding, client=client  # type: ignore
 )
 retriever = vectorstore.as_retriever(search_kwargs=settings.rag_search_kwargs)
 support_retriever = SupportRetriever(vectorstore=retriever)
