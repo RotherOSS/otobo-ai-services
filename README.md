@@ -132,7 +132,7 @@ docker build -t ki-werkstatt/otobo:latest .
 Nachdem die Datenbank gestartet wurde (Wichtig!), kann mit diesem Befehl nun der Service gestartet werden:
 
 ```bash
-docker run -d -e API_KEY=ServiceApiKey -e CHROMADB_API_KEY=databaseToken -e CHROMADB_HOST=ipDatenbankInDockerNetwork -e SERVER_PORT=8080 --network=otobo_tas -p 8080:8080 --name OTOBO <image-id (Anfang...)>
+docker run -d -e AI_API_KEY=ServiceApiKey -e AI_VECTORDB_AUTH_TOKEN=databaseToken -e CHROMADB_HOST=ipDatenbankInDockerNetwork -e SERVER_PORT=8080 --network=otobo_tas -p 8080:8080 --name OTOBO <image-id (Anfang...)>
 ```
 
 1. ServiceApiKey: Frei definierbarer Token, der später für den Aufruf
@@ -153,14 +153,14 @@ Die Datei .env_example enthält alle notwendigen Umgebungsvariablen.\
 Hier einige Beispielwerte:
 
 ```bash
-SERVER_HOST="0.0.0.0"
-SERVER_PORT="8000"
+AI_API_SERVER_HOST="0.0.0.0"
+AI_API_SERVER_PORT="8000"
 
-CHROMADB_HOST="localhost"
-CHROMADB_PORT="8000"
-CHROMADB_COLLECTION="mytickets"
+AI_VECTORDB_HOST="localhost"
+AI_VECTORDB_PORT="8000"
+AI_VECTORSTORE_INDEX="mytickets"
 
-API_KEY="<use a secret API key>"
+AI_API_KEY="<use a secret API key>"
 ```
 
 Ist der Docker des API-Servers gestartet, können Sie auf den\

@@ -21,7 +21,7 @@ class AppSettings:
 
     def __init__(self):
         load_dotenv()  # load enviroment variables once
-        self.API_KEY: Annotated[
+        self.AI_API_KEY: Annotated[
             str,
             Doc(
                 """
@@ -35,7 +35,7 @@ class AppSettings:
 
                 headers = {
                 'Content-Type': 'application/json',
-                'access_token': os.getenv("API_KEY")
+                'access_token': os.getenv("AI_API_KEY")
                 }
 
                 query_texts = [
@@ -60,13 +60,13 @@ class AppSettings:
                 ```
                 """
             ),
-        ] = os.getenv("API_KEY")
-        self.SERVER_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
-        self.SERVER_PORT = int(os.getenv("SERVER_PORT", "8080"))
-        self.CHROMADB_HOST = os.getenv("CHROMADB_HOST", "localhost")
-        self.CHROMADB_PORT = os.getenv("CHROMADB_PORT", "8000")
-        self.CHROMADB_API_KEY = os.getenv("CHROMADB_API_KEY", None)
-        self.CHROMADB_COLLECTION = os.getenv("CHROMADB_COLLECTION", "documents")
+        ] = os.getenv("AI_API_KEY")
+        self.AI_API_SERVER_HOST = os.getenv("AI_API_SERVER_HOST", "0.0.0.0")
+        self.AI_API_SERVER_PORT = int(os.getenv("AI_API_SERVER_PORT", "8080"))
+        self.AI_VECTORDB_HOST = os.getenv("AI_VECTORDB_HOST", "localhost")
+        self.AI_VECTORDB_PORT = os.getenv("AI_VECTORDB_PORT", "8000")
+        self.AI_VECTORDB_AUTH_TOKEN = os.getenv("AI_VECTORDB_AUTH_TOKEN", None)
+        self.AI_VECTORSTORE_INDEX = os.getenv("AI_VECTORSTORE_INDEX", "documents")
         self.LLM_OLLAMA_URL = os.getenv(
             "LLM_OLLAMA_URL", "http://localhost:11434"
         )  # ToDo default value???
