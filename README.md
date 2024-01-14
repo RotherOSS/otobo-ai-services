@@ -10,7 +10,7 @@ Erzeugt eine Schnittstelle, die sich in das OTOBO-Ticketsystem integrieren läss
 Diese Schnittstelle ermöglicht es, Anfragen anhand bestehender Tickets beantworten zu lassen (`/llm-call/invoke/`).\
 Dazu werden zuerst bestehende Tickets aufbereitet (embedded) und in einer Vektor-Datenbank gespeichert (`/embedding/insert/`).
 
-Für die Speicherung der Embeddings wird Chroma-DB benutzt.
+Für die Speicherung der Embeddings wird zur Zeit Chroma-DB benutzt.
 
 Die API verwendet einen API-Key zur Authentifizierung.
 

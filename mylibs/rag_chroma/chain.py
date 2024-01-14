@@ -9,30 +9,14 @@ from langchain.schema.runnable import (
 )
 from langchain.vectorstores.chroma import Chroma
 
-# from langchain.embeddings import HuggingFaceBgeEmbeddings
 from mylibs.classes.AppSettings import AppSettings
-from mylibs.embedding.embedding import get_dbclient
+from mylibs.embedding.embedding import get_dbclient, embedding
 from mylibs.utils.utils import get_content, get_prompt
-from langchain.embeddings import OllamaEmbeddings
 
 settings = AppSettings()
 
 client = get_dbclient()
-
-if settings.use_huggingface:
-    from langchain.embeddings import HuggingFaceInferenceAPIEmbeddings
-
-    embedding = HuggingFaceInferenceAPIEmbeddings(
-        api_key=settings.HUGGINGFACEHUB_API_TOKEN,
-        model_name=settings.embedding_model_name,
-    )
-else:
-    # Self hosted embedding model (+2GB ram)
-    # embedding = HuggingFaceBgeEmbeddings(model_name=settings.embedding_model_name)
-
-    embedding = OllamaEmbeddings(
-        base_url=settings.LLM_OLLAMA_URL, model=settings.LLM_OLLAMA_MODEL
-    )
+embedding = embedding()
 
 
 vectorstore = Chroma(

@@ -24,6 +24,7 @@ from langchain.retrievers import ContextualCompressionRetriever
 from mylibs.classes.AppSettings import AppSettings
 from mylibs.embedding.embedding import (
     get_dbclient,
+    embedding,
     embedding_function,
     query_embeddings,
 )
@@ -56,7 +57,8 @@ class SupportRetriever(VectorStoreRetriever):
         ids = list(dict.fromkeys(ids))  # remove duplicates
 
         collection = client.get_collection(
-            name=settings.AI_VECTORSTORE_INDEX, embedding_function=embedding_function()
+            name=settings.AI_VECTORSTORE_INDEX,
+            embedding_function=embedding_function(),
         )
 
         where: Where = {"process_id": {"$in": ids}}
@@ -71,11 +73,9 @@ class SupportRetriever(VectorStoreRetriever):
 
 
 settings = AppSettings()
-client = get_dbclient()
 
-embedding = OllamaEmbeddings(
-    base_url=settings.LLM_OLLAMA_URL, model=settings.LLM_OLLAMA_MODEL
-)
+client = get_dbclient()
+embedding = embedding()
 
 
 vectorstore = Chroma(

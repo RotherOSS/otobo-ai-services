@@ -1,16 +1,18 @@
 import uuid
 from typing import Dict, List, Optional, Union
-
-# from dotenv import load_dotenv
+from fastapi import HTTPException
 import chromadb
 from chromadb import GetResult, QueryResult
 from chromadb.api.types import ID, IDs, Include, OneOrMany, Where
-from chromadb.config import Settings as DbSettings
-from chromadb.utils import embedding_functions
-from fastapi import HTTPException
+from chromadb.config import Settings as ChromaDbSettings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from mylibs.classes.SefHostedEmbeddingFunction import SefHostedEmbeddingFunction
+from langchain.embeddings import HuggingFaceBgeEmbeddings
+from langchain.embeddings import OllamaEmbeddings
 
+from mylibs.classes.SefHostedEmbeddingFunction import (
+    HuggingFaceEmbeddingFunction,
+    OllamaEmbeddingFunction,
+)
 from mylibs.classes.AppSettings import AppSettings
 from mylibs.classes.Ticket import Ticket
 
@@ -18,34 +20,52 @@ from mylibs.classes.Ticket import Ticket
 settings = AppSettings()
 
 
+def embedding():
+    if settings.use_huggingface:
+        from langchain.embeddings import HuggingFaceInferenceAPIEmbeddings
+
+        # Self hosted embedding model (+2GB ram)
+        return HuggingFaceBgeEmbeddings(model_name=settings.embedding_model_name)
+
+        # embedding = HuggingFaceInferenceAPIEmbeddings(
+        #     api_key=settings.HUGGINGFACEHUB_API_TOKEN,
+        #     model_name=settings.embedding_model_name,
+        # )
+    else:
+        return OllamaEmbeddings(
+            base_url=settings.LLM_OLLAMA_URL, model=settings.LLM_OLLAMA_MODEL
+        )
+
+
 def embedding_function():
     """returns the embedding function depending on settings flag"""
     if settings.use_huggingface:
-        return embedding_functions.HuggingFaceEmbeddingFunction(
-            api_key=settings.HUGGINGFACEHUB_API_TOKEN,
-            model_name=settings.embedding_model_name,
-        )
+        return HuggingFaceEmbeddingFunction()
     else:
-        # todo Llama?
-        return SefHostedEmbeddingFunction()
+        return OllamaEmbeddingFunction()
 
 
 def get_dbclient():
     """Helper function to always use the same Chroma client"""
-    if settings.AI_VECTORDB_AUTH_TOKEN is None:
-        return chromadb.HttpClient(
-            host=settings.AI_VECTORDB_HOST,
-            port=settings.AI_VECTORDB_PORT,
-        )
-    else:
-        return chromadb.HttpClient(
-            host=settings.AI_VECTORDB_HOST,
-            port=settings.AI_VECTORDB_PORT,
-            settings=DbSettings(
-                chroma_client_auth_provider="chromadb.auth.token.TokenAuthClientProvider",
-                chroma_client_auth_credentials=settings.AI_VECTORDB_AUTH_TOKEN,
-            ),
-        )
+    try:
+        if settings.AI_VECTORDB_AUTH_TOKEN is None:
+            return chromadb.HttpClient(
+                host=settings.AI_VECTORDB_HOST,
+                port=settings.AI_VECTORDB_PORT,
+            )
+        else:
+            return chromadb.HttpClient(
+                host=settings.AI_VECTORDB_HOST,
+                port=settings.AI_VECTORDB_PORT,
+                settings=ChromaDbSettings(
+                    chroma_client_auth_provider="chromadb.auth.token.TokenAuthClientProvider",
+                    chroma_client_auth_credentials=settings.AI_VECTORDB_AUTH_TOKEN,
+                ),
+            )
+    except Exception as e:
+        print("error in get_dbclient:")
+        print(e)
+        raise e
 
 
 def get_meta(ticket: Ticket):
@@ -178,7 +198,8 @@ def query_embeddings(
     try:
         client = get_dbclient()
         collection = client.get_collection(
-            name=settings.AI_VECTORSTORE_INDEX, embedding_function=embedding_function()
+            name=settings.AI_VECTORSTORE_INDEX,
+            embedding_function=embedding_function(),
         )
         result = collection.query(
             query_embeddings=None,

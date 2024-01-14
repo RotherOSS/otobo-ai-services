@@ -10,16 +10,13 @@ from langchain.schema.runnable import (
 from langchain.vectorstores.chroma import Chroma
 
 from mylibs.classes.AppSettings import AppSettings
-from mylibs.embedding.embedding import get_dbclient
+from mylibs.embedding.embedding import embedding, get_dbclient
 from mylibs.utils.utils import get_content, get_prompt
 
 settings = AppSettings()
+
 client = get_dbclient()
-
-embedding = OllamaEmbeddings(
-    base_url=settings.LLM_OLLAMA_URL, model=settings.LLM_OLLAMA_MODEL
-)
-
+embedding = embedding()
 vectorstore = Chroma(
     collection_name=settings.AI_VECTORSTORE_INDEX, embedding_function=embedding, client=client  # type: ignore
 )

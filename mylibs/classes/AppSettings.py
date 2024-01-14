@@ -80,7 +80,7 @@ class AppSettings:
         self.TOGETHERAI_API_KEY = os.getenv("TOGETHERAI_API_KEY", None)
         self.TOGETHERAI_MODEL = os.getenv("TOGETHERAI_MODEL", None)
 
-        self.HUGGINGFACEHUB_API_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN", None)
+        # self.HUGGINGFACEHUB_API_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN", None)
         self.use_huggingface = os.getenv("USE_HUGGINGFACE", "False").lower() in [
             "true",
             "1",
@@ -122,14 +122,14 @@ class AppSettings:
 
     def check_envs(self):
         """checks if all necesarry varables are set"""
-        if os.getenv("API_KEY") is None:
-            raise ValueError("Enviroment variable 'API_KEY' must be set.")
+        if os.getenv("AI_API_KEY") is None:
+            raise ValueError("Enviroment variable 'AI_API_KEY' must be set.")
 
-        if self.use_huggingface:
-            if self.HUGGINGFACEHUB_API_TOKEN is None:
-                raise ValueError(
-                    "If 'USE_HUGGINGFACE' is true enviroment variable 'HUGGINGFACEHUB_API_TOKEN' must be set."
-                )
+        # if self.use_huggingface:
+        #     if self.HUGGINGFACEHUB_API_TOKEN is None:
+        #         raise ValueError(
+        #             "If 'USE_HUGGINGFACE' is true enviroment variable 'HUGGINGFACEHUB_API_TOKEN' must be set."
+        #         )
 
         if self.use_together:
             if self.TOGETHERAI_API_KEY is None or self.TOGETHERAI_MODEL is None:
