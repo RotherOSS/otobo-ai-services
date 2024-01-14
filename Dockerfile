@@ -13,7 +13,7 @@ RUN apt-get update\
  "screen"\
  "vim"\
  "curl"\
- && rm -rf /var/lib/apt/lists/*\
+ && rm -rf /var/lib/apt/lists/*
 
 RUN pip install poetry==1.6.1
 
