@@ -45,8 +45,6 @@ docker pull chromadb/chroma
 
 nur DB
 
-<mark>ToDo: Beim Löschen des Containers, werden alle Daten gelöscht!</mark>
-
 ```bash
 docker run -p 8000:8000 chromadb/chroma
 ```

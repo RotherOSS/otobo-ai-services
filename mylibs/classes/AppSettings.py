@@ -1,6 +1,5 @@
 import os
 from dotenv import load_dotenv
-from typing_extensions import Annotated, Doc
 
 
 class AppSettings:
@@ -21,55 +20,14 @@ class AppSettings:
 
     def __init__(self):
         load_dotenv()  # load enviroment variables once
-        self.AI_API_KEY: Annotated[
-            str,
-            Doc(
-                """
-                Authentication token for API call.
-                To call this API with an client you have to put it in your request header
-                ## Exapmle
-                ```Python
-                import os
-                import requests
-                api_url = "http://127.0.0.1:8000/embedding/query/"
-
-                headers = {
-                'Content-Type': 'application/json',
-                'access_token': os.getenv("AI_API_KEY")
-                }
-
-                query_texts = [
-                "Wann war der Burenkrieg in Südafrika?",
-                "Was kann den Verschleiß des seillosen Aufzuges minimieren?",
-                "Was führte zur Entwicklung des ersten Tuberkulose-Testes?",
-                "Wieso forderte Bismarck die Annexion von Sachsen-Meiningen und Reuß nach dem Krieg von 1866?",
-                "Wie hat man am Ende des 19. Jahrhundert in Großbritannien versucht, die Tuberkulose zu bekämpfen?"
-                ]
-
-
-                for query_text in query_texts:
-                response = requests.post(api_url, headers=headers, json={
-                    "query_texts": [query_text],
-                    "where": {"type": "answer"},
-                    "include": [
-                    "metadatas",
-                    "documents"
-                    ]
-                })
-                print(response.json())
-                ```
-                """
-            ),
-        ] = os.getenv("AI_API_KEY")
+        self.AI_API_KEY = os.getenv("AI_API_KEY")
         self.AI_API_SERVER_HOST = os.getenv("AI_API_SERVER_HOST", "0.0.0.0")
         self.AI_API_SERVER_PORT = int(os.getenv("AI_API_SERVER_PORT", "8080"))
         self.AI_VECTORDB_HOST = os.getenv("AI_VECTORDB_HOST", "localhost")
         self.AI_VECTORDB_PORT = os.getenv("AI_VECTORDB_PORT", "8000")
         self.AI_VECTORDB_AUTH_TOKEN = os.getenv("AI_VECTORDB_AUTH_TOKEN", None)
         self.AI_VECTORSTORE_INDEX = os.getenv("AI_VECTORSTORE_INDEX", "documents")
-        self.LLM_OLLAMA_URL = os.getenv(
-            "LLM_OLLAMA_URL", "http://localhost:11434"
-        )  # ToDo default value???
+        self.LLM_OLLAMA_URL = os.getenv("LLM_OLLAMA_URL", "http://localhost:11434")
         self.LLM_OLLAMA_MODEL = os.getenv("LLM_OLLAMA_MODEL", "llama2:13b")
 
         self.LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "1024"))
@@ -79,9 +37,7 @@ class AppSettings:
 
         self.TOGETHERAI_API_KEY = os.getenv("TOGETHERAI_API_KEY", None)
         self.TOGETHERAI_MODEL = os.getenv("TOGETHERAI_MODEL", None)
-
-        # self.HUGGINGFACEHUB_API_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN", None)
-        self.use_huggingface = os.getenv("USE_HUGGINGFACE", "False").lower() in [
+        self.use_localembedding = os.getenv("USE_LOCAL_EMBEDDING", "True").lower() in [
             "true",
             "1",
             "t",
@@ -95,7 +51,6 @@ class AppSettings:
             "y",
             "yes",
         ]
-        # self. = os.getenv('', '')
 
         self.fastapi_title = "Ticket Answering Service"
         self.fastapi_version = "1.0"
@@ -124,12 +79,6 @@ class AppSettings:
         """checks if all necesarry varables are set"""
         if os.getenv("AI_API_KEY") is None:
             raise ValueError("Enviroment variable 'AI_API_KEY' must be set.")
-
-        # if self.use_huggingface:
-        #     if self.HUGGINGFACEHUB_API_TOKEN is None:
-        #         raise ValueError(
-        #             "If 'USE_HUGGINGFACE' is true enviroment variable 'HUGGINGFACEHUB_API_TOKEN' must be set."
-        #         )
 
         if self.use_together:
             if self.TOGETHERAI_API_KEY is None or self.TOGETHERAI_MODEL is None:

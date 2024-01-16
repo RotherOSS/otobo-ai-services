@@ -1,13 +1,11 @@
 import uuid
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 from fastapi import HTTPException
 import chromadb
 from chromadb import GetResult, QueryResult
 from chromadb.api.types import ID, IDs, Include, OneOrMany, Where
 from chromadb.config import Settings as ChromaDbSettings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings import HuggingFaceBgeEmbeddings
-from langchain.embeddings import OllamaEmbeddings
 
 from mylibs.classes.SefHostedEmbeddingFunction import (
     HuggingFaceEmbeddingFunction,
@@ -21,17 +19,14 @@ settings = AppSettings()
 
 
 def embedding():
-    if settings.use_huggingface:
-        from langchain.embeddings import HuggingFaceInferenceAPIEmbeddings
+    if settings.use_localembedding:
+        from langchain.embeddings import HuggingFaceBgeEmbeddings
 
         # Self hosted embedding model (+2GB ram)
         return HuggingFaceBgeEmbeddings(model_name=settings.embedding_model_name)
-
-        # embedding = HuggingFaceInferenceAPIEmbeddings(
-        #     api_key=settings.HUGGINGFACEHUB_API_TOKEN,
-        #     model_name=settings.embedding_model_name,
-        # )
     else:
+        from langchain.embeddings import OllamaEmbeddings
+
         return OllamaEmbeddings(
             base_url=settings.LLM_OLLAMA_URL, model=settings.LLM_OLLAMA_MODEL
         )
@@ -39,7 +34,7 @@ def embedding():
 
 def embedding_function():
     """returns the embedding function depending on settings flag"""
-    if settings.use_huggingface:
+    if settings.use_localembedding:
         return HuggingFaceEmbeddingFunction()
     else:
         return OllamaEmbeddingFunction()
