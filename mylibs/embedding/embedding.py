@@ -20,12 +20,12 @@ settings = AppSettings()
 
 def embedding():
     if settings.use_localembedding:
-        from langchain.embeddings import HuggingFaceBgeEmbeddings
+        from langchain_community.embeddings import HuggingFaceBgeEmbeddings
 
         # Self hosted embedding model (+2GB ram)
         return HuggingFaceBgeEmbeddings(model_name=settings.embedding_model_name)
     else:
-        from langchain.embeddings import OllamaEmbeddings
+        from langchain_community.embeddings import OllamaEmbeddings
 
         return OllamaEmbeddings(
             base_url=settings.LLM_OLLAMA_URL, model=settings.LLM_OLLAMA_MODEL

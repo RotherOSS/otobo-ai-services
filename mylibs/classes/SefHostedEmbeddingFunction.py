@@ -1,5 +1,5 @@
-from langchain.embeddings import HuggingFaceBgeEmbeddings
-from langchain.embeddings.ollama import OllamaEmbeddings
+from langchain_community.embeddings import HuggingFaceBgeEmbeddings
+from langchain_community.embeddings.ollama import OllamaEmbeddings
 from chromadb import Documents, EmbeddingFunction, Embeddings
 from mylibs.classes.AppSettings import AppSettings
 
@@ -21,7 +21,7 @@ class HuggingFaceEmbeddingFunction(EmbeddingFunction[Documents]):
         # A list is a sequence but a sequence is not necessarily a list. So it's OK
         return embedding.embed_documents(input)  # type: ignore
 
-        # from langchain.embeddings import OllamaEmbeddings
+        # from langchain_community.embeddings import OllamaEmbeddings
         # embedding = OllamaEmbeddings(
         #     base_url=settings.LLM_OLLAMA_URL, model=settings.LLM_OLLAMA_MODEL
         # )

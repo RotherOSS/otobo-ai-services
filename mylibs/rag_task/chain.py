@@ -1,7 +1,7 @@
 from typing import List
 from chromadb import Where
-from langchain.llms.ollama import Ollama
-from langchain.embeddings import OllamaEmbeddings
+from langchain_community.llms.ollama import Ollama
+from langchain_community.embeddings import OllamaEmbeddings
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import (
@@ -9,7 +9,7 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
     RunnableLambda,
 )
-from langchain.vectorstores.chroma import Chroma
+from langchain_community.vectorstores.chroma import Chroma
 from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_core.pydantic_v1 import Field
 from langchain_core.documents import Document

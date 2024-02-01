@@ -1,5 +1,5 @@
-from langchain.llms.ollama import Ollama
-from langchain.embeddings import OllamaEmbeddings
+from langchain_community.llms.ollama import Ollama
+from langchain_community.embeddings import OllamaEmbeddings
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import (
@@ -7,7 +7,7 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
     RunnableLambda,
 )
-from langchain.vectorstores.chroma import Chroma
+from langchain_community.vectorstores.chroma import Chroma
 
 from mylibs.classes.AppSettings import AppSettings
 from mylibs.embedding.embedding import embedding, get_dbclient
