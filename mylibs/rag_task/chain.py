@@ -1,7 +1,6 @@
 from typing import List
 from chromadb import Where
-from langchain_community.llms.ollama import Ollama
-from langchain_community.embeddings import OllamaEmbeddings
+from elasticsearch import Elasticsearch
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import (
@@ -9,7 +8,6 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
     RunnableLambda,
 )
-from langchain_community.vectorstores.chroma import Chroma
 from langchain_core.vectorstores import VectorStoreRetriever
 from langchain_core.pydantic_v1 import Field
 from langchain_core.documents import Document
@@ -23,12 +21,18 @@ from langchain.retrievers import ContextualCompressionRetriever
 
 from mylibs.classes.AppSettings import AppSettings
 from mylibs.embedding.embedding import (
-    get_dbclient,
+    get_chroma_dbclient,
+    get_model,
+    get_embeddings,
     embedding,
     embedding_function,
+    get_vectorstore,
     query_embeddings,
 )
 from mylibs.utils.utils import get_content, get_prompt
+
+settings = AppSettings()
+chroma_client = get_chroma_dbclient()
 
 
 class SupportRetriever(VectorStoreRetriever):
@@ -47,40 +51,51 @@ class SupportRetriever(VectorStoreRetriever):
         Returns:
             List[Document]: list of all text chunks (maybe including overlapping)
         """
-        get_task_result = query_embeddings(
-            query_texts=[query],
-            # where={"type": "question"},
-            n_results=3,
-            include=["metadatas"],
-        )
-        ids = [el["process_id"] for el in get_task_result["metadatas"][0]]  # type: ignore
-        ids = list(dict.fromkeys(ids))  # remove duplicates
+        if settings.use_chromadb:
+            get_task_result = query_embeddings(
+                query_texts=[query],
+                # where={"type": "question"},
+                n_results=3,
+                include=["metadatas"],
+            )
+            ids = [el["process_id"] for el in get_task_result["metadatas"][0]]  # type: ignore
+            ids = list(dict.fromkeys(ids))  # remove duplicates
 
-        collection = client.get_collection(
-            name=settings.AI_VECTORSTORE_INDEX,
-            embedding_function=embedding_function(),
-        )
+            collection = chroma_client.get_collection(
+                name=settings.AI_VECTORSTORE_INDEX,
+                embedding_function=embedding_function(),
+            )
 
-        where: Where = {"process_id": {"$in": ids}}
-        get_all_result = collection.get(where=where, include=["documents"])
+            where: Where = {"process_id": {"$in": ids}}
+            get_all_result = collection.get(where=where, include=["documents"])
 
-        docs: List[Document] = []
-        for result in get_all_result["documents"]:  # type: ignore
-            doc = Document(page_content=result, metadata={"ids": ids})
-            docs.append(doc)
+            docs: List[Document] = []
+            for result in get_all_result["documents"]:  # type: ignore
+                doc = Document(page_content=result, metadata={"ids": ids})
+                docs.append(doc)
 
-        return docs
+            return docs
+        else:
+            get_task_result = query_embeddings(
+                query_texts=[query],
+                # where={"type": "question"},
+                n_results=3,
+            )
+            ids = [el["process_id"] for el in get_task_result["metadatas"][0]]  # type: ignore
+            ids = list(dict.fromkeys(ids))  # remove duplicates
+
+            es = Elasticsearch(settings.ES_URL)
+            es_query = {"bool": {"filter": [{"terms": {"metadata.process_id": ids}}]}}
+            embed = es.search(
+                index=settings.AI_VECTORSTORE_INDEX,
+                query=es_query,
+                source_excludes="vector",
+            )
+            return embed.body["hits"]["hits"]
 
 
-settings = AppSettings()
-
-client = get_dbclient()
 embedding = embedding()
-
-
-vectorstore = Chroma(
-    collection_name=settings.AI_VECTORSTORE_INDEX, embedding_function=embedding, client=client  # type: ignore
-)
+vectorstore = get_vectorstore()
 retriever = vectorstore.as_retriever(search_kwargs=settings.rag_search_kwargs)
 support_retriever = SupportRetriever(vectorstore=retriever)
 
@@ -104,13 +119,8 @@ compression_retriever = ContextualCompressionRetriever(
     base_compressor=pipeline_compressor, base_retriever=support_retriever
 )
 
-
 # LLM
-model = Ollama(
-    base_url=settings.LLM_OLLAMA_URL,
-    model=settings.LLM_OLLAMA_MODEL,
-    temperature=settings.LLM_TEMPERATURE,
-)
+model = get_model()
 
 # RAG chain. Hint: wrtitten in LangChain Expression Language (LCEL)
 chain = (

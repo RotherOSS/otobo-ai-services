@@ -18,6 +18,7 @@ sentence_transformers = "2.2.2"
 
 [tool.poetry.group.dev.dependencies]
 langchain-cli = ">=0.0.15"
+ipykernel = "^6.29.0"
 
 [build-system]
 requires = ["poetry-core"]

@@ -1,5 +1,3 @@
-from langchain_community.llms.ollama import Ollama
-from langchain_community.embeddings import OllamaEmbeddings
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import (
@@ -7,19 +5,14 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
     RunnableLambda,
 )
-from langchain_community.vectorstores.chroma import Chroma
 
 from mylibs.classes.AppSettings import AppSettings
-from mylibs.embedding.embedding import embedding, get_dbclient
+from mylibs.embedding.embedding import embedding, get_model, get_vectorstore
 from mylibs.utils.utils import get_content, get_prompt
 
 settings = AppSettings()
-
-client = get_dbclient()
 embedding = embedding()
-vectorstore = Chroma(
-    collection_name=settings.AI_VECTORSTORE_INDEX, embedding_function=embedding, client=client  # type: ignore
-)
+vectorstore = get_vectorstore()
 
 # ToDo: Optimize here:
 # depending on the chunk bigger k?
@@ -61,11 +54,7 @@ compression_retriever = ContextualCompressionRetriever(
 prompt = ChatPromptTemplate.from_template(template)
 
 # LLM
-model = Ollama(
-    base_url=settings.LLM_OLLAMA_URL,
-    model=settings.LLM_OLLAMA_MODEL,
-    temperature=settings.LLM_TEMPERATURE,
-)
+model = get_model()
 
 # RAG chain. Hint: wrtitten in LangChain Expression Language (LCEL)
 chain = (
