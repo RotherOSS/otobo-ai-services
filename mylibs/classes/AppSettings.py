@@ -35,6 +35,7 @@ class AppSettings:
         self.AI_VECTORDB_PORT = os.getenv("AI_VECTORDB_PORT", "9200")
         self.AI_VECTORDB_AUTH_TOKEN = os.getenv("AI_VECTORDB_AUTH_TOKEN", None)
         self.AI_VECTORSTORE_INDEX = os.getenv("AI_VECTORSTORE_INDEX", "documents")
+        self.es_url = f"{self.AI_VECTORDB_HOST}:{self.AI_VECTORDB_PORT}"
         self.LLM_OTOBO_API_KEY = os.getenv("LLM_OTOBO_API_KEY", None)
         self.LLM_OLLAMA_URL = os.getenv("LLM_OLLAMA_URL", "http://localhost:11434")
         self.LLM_OLLAMA_MODEL = os.getenv("LLM_OLLAMA_MODEL", "llama2:13b")

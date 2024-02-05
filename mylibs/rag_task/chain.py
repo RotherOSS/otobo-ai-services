@@ -32,7 +32,6 @@ from mylibs.embedding.embedding import (
 from mylibs.utils.utils import get_content, get_prompt
 
 settings = AppSettings()
-chroma_client = get_chroma_dbclient()
 
 
 class SupportRetriever(VectorStoreRetriever):
@@ -60,7 +59,7 @@ class SupportRetriever(VectorStoreRetriever):
             )
             ids = [el["process_id"] for el in get_task_result["metadatas"][0]]  # type: ignore
             ids = list(dict.fromkeys(ids))  # remove duplicates
-
+            chroma_client = get_chroma_dbclient()
             collection = chroma_client.get_collection(
                 name=settings.AI_VECTORSTORE_INDEX,
                 embedding_function=embedding_function(),
@@ -84,7 +83,7 @@ class SupportRetriever(VectorStoreRetriever):
             ids = [el["process_id"] for el in get_task_result["metadatas"][0]]  # type: ignore
             ids = list(dict.fromkeys(ids))  # remove duplicates
 
-            es = Elasticsearch(settings.ES_URL)
+            es = Elasticsearch(settings.es_url)
             es_query = {"bool": {"filter": [{"terms": {"metadata.process_id": ids}}]}}
             embed = es.search(
                 index=settings.AI_VECTORSTORE_INDEX,

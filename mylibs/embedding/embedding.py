@@ -75,8 +75,9 @@ def get_vectorstore():
     else:
         from langchain_community.vectorstores.elasticsearch import ElasticsearchStore
 
+        # print(f"{settings.AI_VECTORDB_HOST}:{settings.AI_VECTORDB_PORT}")
         return ElasticsearchStore(
-            es_url=f"{settings.AI_VECTORDB_HOST}:{settings.AI_VECTORDB_PORT}",
+            es_url=settings.es_url,
             index_name=settings.AI_VECTORSTORE_INDEX,
             embedding=db_embedding,
         )
@@ -137,7 +138,7 @@ async def get_heartbeat():
             return get_chroma_dbclient().heartbeat()
         else:
 
-            client = Elasticsearch(settings.ES_URL)
+            client = Elasticsearch(settings.es_url)
             return client.info()
     except Exception as e:
         print(e)
@@ -163,7 +164,7 @@ async def get_embedding(id: str) -> GetResult:
             embedding = collection.get(ids=id, include=["documents", "metadatas"])
             return embedding
         else:
-            es = Elasticsearch(settings.ES_URL)
+            es = Elasticsearch(settings.es_url)
             embedding = es.get(index=settings.AI_VECTORSTORE_INDEX, id=id)
             return embedding
     except Exception as e:
@@ -214,7 +215,7 @@ async def get_embeddings(
             )
             return embed
         else:
-            es = Elasticsearch(settings.ES_URL)
+            es = Elasticsearch(settings.es_url)
             query = {"bool": {"filter": []}}
             if ids:
                 query["bool"]["filter"].append({"terms": {"_id": ids}})
@@ -240,7 +241,7 @@ async def get_embeddings(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-def query_embeddings(
+async def query_embeddings(
     query_texts: List[str],
     where: Optional[Dict] = None,
     n_results: int = 10,
@@ -375,7 +376,7 @@ async def delete_embedding(id: str):
             collection.delete(ids=[id])
             return {"id": id}
         else:
-            es = Elasticsearch(settings.ES_URL)
+            es = Elasticsearch(settings.es_url)
             response = es.delete(index=settings.AI_VECTORSTORE_INDEX, id=id)
             return response.body["_id"]
     except Exception as e:
@@ -412,7 +413,7 @@ async def delete_embeddings(
             )
             return {"ids": ids}
         else:
-            es = Elasticsearch(settings.ES_URL)
+            es = Elasticsearch(settings.es_url)
 
             body = {"query": {"bool": {"filter": []}}}
             filter = body["query"]["bool"]["filter"]
