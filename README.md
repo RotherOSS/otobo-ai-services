@@ -159,6 +159,11 @@ AI_VECTORDB_PORT="8000"
 AI_VECTORSTORE_INDEX="mytickets"
 
 AI_API_KEY="<use a secret API key>"
+
+LLM_OTOBO_API_KEY="secret-to-use-otobo-ai-server"
+LLM_OLLAMA_URL="<url-from-model>"
+LLM_OLLAMA_MODEL=llama2:13b
+
 ```
 
 Ist der Docker des API-Servers gestartet, können Sie auf den\
