@@ -41,8 +41,8 @@ async def redirect_root_to_docs():
     "/ai/db/heartbeat",
     description="Get the current time in nanoseconds since epoch. Used to check if the database server is alive.",
 )
-def heartbeat():
-    return get_heartbeat()
+async def heartbeat():
+    return await get_heartbeat()
 
 
 #####################
@@ -58,9 +58,9 @@ class Question(BaseModel):
     description="Answers the submitted question using the stored data records.",
     dependencies=[Depends(get_api_key)],
 )
-def rag(body: Question):
+async def rag(body: Question):
     try:
-        return rag_chroma_chain.invoke(body.question)
+        return await rag_chroma_chain.ainvoke(body.question)
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
@@ -72,9 +72,9 @@ def rag(body: Question):
     description="Answers the submitted question using the stored data records and contextual compression",
     dependencies=[Depends(get_api_key)],
 )
-def rag(body: Question):
+async def rag(body: Question):
     try:
-        return rag_compression_chain.invoke(body.question)
+        return rag_compression_chain.ainvoke(body.question)
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
@@ -86,9 +86,9 @@ def rag(body: Question):
     description="Answers the submitted question using the complete task.",
     dependencies=[Depends(get_api_key)],
 )
-def rag(body: Question):
+async def rag(body: Question):
     try:
-        return rag_task_chain.invoke(body.question)
+        return await rag_task_chain.ainvoke(body.question)
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
@@ -102,14 +102,14 @@ def rag(body: Question):
     """,
     dependencies=[Depends(get_api_key)],
 )
-def filter(
+async def filter(
     ids: Optional[OneOrMany[ID]] = None,
     process_id: Optional[str] | None = Body(default=None),
     limit: Optional[int] | None = Body(default=None),
     offset: Optional[int] | None = Body(default=None),
     include: Include = ["metadatas", "documents"],
 ):
-    return get_embeddings(
+    return await get_embeddings(
         ids=ids,
         process_id=process_id,
         limit=limit,
@@ -128,13 +128,13 @@ def filter(
     Ids are always included. Defaults to ["metadatas", "documents"]. Optional.""",
     dependencies=[Depends(get_api_key)],
 )
-def post_query(
+async def post_query(
     query_texts: List[str],
     where: Optional[Dict] = None,
     n_results: int = Body(default=10),
     include: Include = ["metadatas", "documents"],
 ):
-    return query_embeddings(
+    return await query_embeddings(
         query_texts=query_texts, where=where, n_results=n_results, include=include
     )
 
@@ -145,8 +145,8 @@ def post_query(
     description="Get embedded data by id.",
     dependencies=[Depends(get_api_key)],
 )
-def get(id: str):
-    return get_embedding(id)
+async def get(id: str):
+    return await get_embedding(id)
 
 
 @app.put(
@@ -165,8 +165,8 @@ async def put(embeds: List[Ticket]):
     description="Delete embedded data by id.",
     dependencies=[Depends(get_api_key)],
 )
-def delete(id: str):
-    return delete_embedding(id)
+async def delete(id: str):
+    return await delete_embedding(id)
 
 
 @app.post(
@@ -174,11 +174,11 @@ def delete(id: str):
     name="Delete Many",
     description="Delete embedded data by filter.\nAt least one of the optional parameters 'ids', 'where' must be specified.",
 )
-def delete_many(
+async def delete_many(
     ids: Optional[IDs] = None,
     where: Optional[Dict] = None,
 ):
-    return delete_embeddings(
+    return await delete_embeddings(
         ids=ids,
         where=where,
     )
