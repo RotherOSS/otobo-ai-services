@@ -6,18 +6,18 @@
   "configurations": [
     {
       "name": "Server",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "./app/server.py",
       "console": "integratedTerminal",
-      "justMyCode": true,
+      "justMyCode": false,
       "env": {
         "PYTHONPATH": "${workspaceRoot}"
       }
     },
     {
       "name": "Python: Current File",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "program": "${file}",
       "console": "integratedTerminal",
@@ -28,7 +28,7 @@
     },
     {
       "name": "Python: FastAPI (main)",
-      "type": "python",
+      "type": "debugpy",
       "request": "launch",
       "module": "uvicorn",
       "args": [

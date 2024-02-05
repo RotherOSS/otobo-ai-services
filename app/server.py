@@ -9,7 +9,7 @@ from mylibs.rag_compression.chain import chain as rag_compression_chain
 from mylibs.rag_task.chain import chain as rag_task_chain
 from mylibs.classes.AppSettings import AppSettings
 from mylibs.embedding.embedding import (
-    Ticket,
+    UploadTicket,
     delete_embedding,
     delete_embeddings,
     get_embedding,
@@ -74,7 +74,8 @@ async def rag(body: Question):
 )
 async def rag(body: Question):
     try:
-        return rag_compression_chain.ainvoke(body.question)
+        response = await rag_compression_chain.ainvoke(body.question)
+        return response
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
@@ -88,7 +89,8 @@ async def rag(body: Question):
 )
 async def rag(body: Question):
     try:
-        return await rag_task_chain.ainvoke(body.question)
+        response = await rag_task_chain.ainvoke(body.question)
+        return response
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
@@ -129,13 +131,16 @@ async def filter(
     dependencies=[Depends(get_api_key)],
 )
 async def post_query(
-    query_texts: List[str],
-    where: Optional[Dict] = None,
+    query_texts: Optional[List[str]] = None,
+    where: Optional[List[Dict]] = None,
     n_results: int = Body(default=10),
     include: Include = ["metadatas", "documents"],
 ):
     return await query_embeddings(
-        query_texts=query_texts, where=where, n_results=n_results, include=include
+        query_texts=query_texts,
+        where_filter=where,
+        n_results=n_results,
+        include=include,
     )
 
 
@@ -155,7 +160,7 @@ async def get(id: str):
     description="Put list of embed datas into db, chunks and creates vectors.",
     dependencies=[Depends(get_api_key)],
 )
-async def put(embeds: List[Ticket]):
+async def put(embeds: List[UploadTicket]):
     return await put_embeddings(embeds)
 
 

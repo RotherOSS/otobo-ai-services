@@ -17,3 +17,19 @@ class Ticket(BaseModel):
     type: Union[str, None] = None  # "question", "answer", "additional", ...
     len: Union[int, None] = None
     document: str
+
+
+# the base structure of a ticket, document must have a value, rest can be None but must exist
+class UploadTicket(BaseModel):
+    """Default Ticket structure, only document must have a value, rest can be None but must exist
+
+    Args:
+        BaseModel (_type_): Pydantic BaseModel
+    """
+
+    process_id: Union[str, None] = None
+    gdpr_id: Union[str, None] = None
+    topic: Union[str, None] = None
+    type: Union[str, None] = None  # "question", "answer", "additional", ...
+    len: Union[int, None] = None
+    document: str

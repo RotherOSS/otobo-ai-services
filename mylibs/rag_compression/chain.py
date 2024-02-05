@@ -19,7 +19,7 @@ vectorstore = get_vectorstore()
 # actually only embeddings with type answer are used by the llm
 new_settings = settings.rag_search_kwargs.copy()
 new_settings["k"] = 20
-retriever = vectorstore.as_retriever(search_kwargs=new_settings)
+base_retriever = vectorstore.as_retriever(search_kwargs=new_settings)
 
 
 sys_prompt = """Sie sind ein hilfsbereiter, respektvoller und ehrlicher Assistent. Antworten Sie immer auf Deutsch, so hilfreich wie möglich und verwenden Sie den vorgegebenen Kontexttext. Ihre Antworten sollten die Frage nur einmal beantworten und nach der Antwort keinen weiteren Text enthalten.
@@ -47,7 +47,7 @@ pipeline_compressor = DocumentCompressorPipeline(
 )
 
 compression_retriever = ContextualCompressionRetriever(
-    base_compressor=pipeline_compressor, base_retriever=retriever
+    base_compressor=pipeline_compressor, base_retriever=base_retriever
 )
 
 

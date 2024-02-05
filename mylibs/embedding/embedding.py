@@ -8,13 +8,14 @@ from chromadb.config import Settings as ChromaDbSettings
 from elasticsearch import Elasticsearch
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores.chroma import Chroma
+from langchain_community.vectorstores.elasticsearch import ElasticsearchStore
 
 from mylibs.classes.SefHostedEmbeddingFunction import (
     HuggingFaceEmbeddingFunction,
     OllamaEmbeddingFunction,
 )
 from mylibs.classes.AppSettings import AppSettings
-from mylibs.classes.Ticket import Ticket
+from mylibs.classes.Ticket import Ticket, UploadTicket
 
 settings = AppSettings()
 
@@ -73,9 +74,6 @@ def get_vectorstore():
         )
         return vectorstore
     else:
-        from langchain_community.vectorstores.elasticsearch import ElasticsearchStore
-
-        # print(f"{settings.AI_VECTORDB_HOST}:{settings.AI_VECTORDB_PORT}")
         return ElasticsearchStore(
             es_url=settings.es_url,
             index_name=settings.AI_VECTORSTORE_INDEX,
@@ -221,7 +219,7 @@ async def get_embeddings(
                 query["bool"]["filter"].append({"terms": {"_id": ids}})
             if process_id:
                 query["bool"]["filter"].append(
-                    {"match_phrase": {"metadata.process_id": process_id}}
+                    {"match": {"metadata.process_id": process_id}}
                 )
             # todo include ggf erweitern
             if "embeddings" not in include:
@@ -242,8 +240,8 @@ async def get_embeddings(
 
 
 async def query_embeddings(
-    query_texts: List[str],
-    where: Optional[Dict] = None,
+    query_texts: Optional[List[str]] = None,
+    where_filter: Optional[List[Dict]] = None,
     n_results: int = 10,
     include: Include = ["metadatas", "documents"],
 ) -> QueryResult:
@@ -254,9 +252,9 @@ async def query_embeddings(
 
     Args:
         query_texts (List[str]): query text(s)
-        where (Optional[Dict], optional): where condition. Defaults to None.
+        where_filter (Optional[List[Dict], optional): where condition. Defaults to None. I.e. [{"match_phrase": {"metadata.process_id": "Slice_0_100"}}]
         n_results (int, optional): max no of results. Defaults to 10.
-        include (Include, optional): include. Defaults to ["metadatas", "documents"].
+        include (Include, optional): include. Defaults to ["metadatas", "documents"]. Only ChromaDB!
 
     Raises:
         HTTPException: _description_
@@ -275,14 +273,15 @@ async def query_embeddings(
                 query_embeddings=None,
                 query_texts=query_texts,
                 n_results=n_results,
-                where=where,
+                where=where_filter[0],
                 include=include,
             )
             return result
         else:
             es: ElasticsearchStore = get_vectorstore()  # type: ignore
             # include parameter not supported with Elasticsearch
-            result = await es.asimilarity_search(query=query_texts[0] if query_texts else "", filter=[where], k=n_results)  # type: ignore
+            where_list = where_filter if where_filter else None
+            result = await es.asimilarity_search(query=query_texts[0] if query_texts else "", filter=where_list, k=n_results)  # type: ignore
             return result
 
     except Exception as e:
@@ -290,7 +289,7 @@ async def query_embeddings(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def put_embeddings(tickets: List[Ticket]):
+async def put_embeddings(tickets: List[UploadTicket]):
     """Puts the given list of data sets in Ticket format into the Vector DB
 
     Splits the texts into chunks with chunk size Settings.embedding_chunk_size and overlap Settings.embedding_chunk_overlap
