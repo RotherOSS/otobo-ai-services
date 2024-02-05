@@ -18,15 +18,24 @@ class AppSettings:
     ```
     """
 
+    true_values = [
+        "true",
+        "1",
+        "t",
+        "y",
+        "yes",
+    ]
+
     def __init__(self):
         load_dotenv()  # load enviroment variables once
         self.AI_API_KEY = os.getenv("AI_API_KEY")
         self.AI_API_SERVER_HOST = os.getenv("AI_API_SERVER_HOST", "0.0.0.0")
         self.AI_API_SERVER_PORT = int(os.getenv("AI_API_SERVER_PORT", "8080"))
-        self.AI_VECTORDB_HOST = os.getenv("AI_VECTORDB_HOST", "localhost")
-        self.AI_VECTORDB_PORT = os.getenv("AI_VECTORDB_PORT", "8000")
+        self.AI_VECTORDB_HOST = os.getenv("AI_VECTORDB_HOST", "http://localhost")
+        self.AI_VECTORDB_PORT = os.getenv("AI_VECTORDB_PORT", "9200")
         self.AI_VECTORDB_AUTH_TOKEN = os.getenv("AI_VECTORDB_AUTH_TOKEN", None)
         self.AI_VECTORSTORE_INDEX = os.getenv("AI_VECTORSTORE_INDEX", "documents")
+        self.LLM_OTOBO_API_KEY = os.getenv("LLM_OTOBO_API_KEY", None)
         self.LLM_OLLAMA_URL = os.getenv("LLM_OLLAMA_URL", "http://localhost:11434")
         self.LLM_OLLAMA_MODEL = os.getenv("LLM_OLLAMA_MODEL", "llama2:13b")
 
@@ -37,20 +46,15 @@ class AppSettings:
 
         self.TOGETHERAI_API_KEY = os.getenv("TOGETHERAI_API_KEY", None)
         self.TOGETHERAI_MODEL = os.getenv("TOGETHERAI_MODEL", None)
-        self.use_localembedding = os.getenv("USE_LOCAL_EMBEDDING", "True").lower() in [
-            "true",
-            "1",
-            "t",
-            "y",
-            "yes",
-        ]
-        self.use_together = os.getenv("USE_TOGETHER", "False").lower() in [
-            "true",
-            "1",
-            "t",
-            "y",
-            "yes",
-        ]
+        self.use_localembedding = (
+            os.getenv("USE_LOCAL_EMBEDDING", "True").lower() in self.true_values
+        )
+        self.use_together = (
+            os.getenv("USE_TOGETHER", "False").lower() in self.true_values
+        )
+        self.use_chromadb = (
+            os.getenv("USE_CHROMADB", "False").lower() in self.true_values
+        )
 
         self.fastapi_title = "Ticket Answering Service"
         self.fastapi_version = "1.0"
