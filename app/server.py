@@ -101,6 +101,8 @@ async def rag(body: Question):
     name="Invoke many",
     description="""Get embedded data by search.\n
     At least one of the optional parameters 'ids' and 'process_id' must be specified.\n
+    Include - ChromaDB: A list of what to include in the results. Can contain "embeddings", "metadatas", "documents", "distances".\n
+    Include - Elasticserach: use "embeddings" to include vectors in result.
     """,
     dependencies=[Depends(get_api_key)],
 )

@@ -5,6 +5,15 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
     RunnableLambda,
 )
+from langchain.document_transformers.embeddings_redundant_filter import (
+    EmbeddingsRedundantFilter,
+)
+from langchain.retrievers.document_compressors import (
+    DocumentCompressorPipeline,
+    EmbeddingsFilter,
+)
+from langchain.retrievers import ContextualCompressionRetriever
+from langchain.text_splitter import CharacterTextSplitter
 
 from mylibs.classes.AppSettings import AppSettings
 from mylibs.embedding.embedding import embedding, get_model, get_vectorstore
@@ -28,14 +37,7 @@ Wenn eine Frage keinen Sinn ergibt oder sachlich nicht kohärent ist, erklären 
 instruction = """CONTEXT:/n/n {context}/n
 Question: {question}"""
 template = get_prompt(instruction, sys_prompt)
-
-from langchain.document_transformers.embeddings_redundant_filter import (
-    EmbeddingsRedundantFilter,
-)
-from langchain.retrievers.document_compressors import DocumentCompressorPipeline
-from langchain.text_splitter import CharacterTextSplitter
-from langchain.retrievers.document_compressors import EmbeddingsFilter
-from langchain.retrievers import ContextualCompressionRetriever
+prompt_template = ChatPromptTemplate.from_template(template)
 
 splitter = CharacterTextSplitter(chunk_size=300, chunk_overlap=0, separator=". ")
 redundant_filter = EmbeddingsRedundantFilter(embeddings=embedding)
@@ -51,8 +53,6 @@ compression_retriever = ContextualCompressionRetriever(
 )
 
 
-prompt = ChatPromptTemplate.from_template(template)
-
 # LLM
 model = get_model()
 
@@ -64,7 +64,7 @@ chain = (
             "question": RunnablePassthrough(),
         }
     )
-    | prompt
+    | prompt_template
     | model
     | StrOutputParser()
 )

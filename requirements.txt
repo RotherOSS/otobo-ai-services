@@ -48,6 +48,7 @@ langchain==0.1.4
 langchain-cli==0.0.21
 langchain-community==0.0.15
 langchain-core==0.1.17
+langchain_together==0.0.2
 langserve==0.0.34
 langsmith==0.0.85
 markdown-it-py==3.0.0

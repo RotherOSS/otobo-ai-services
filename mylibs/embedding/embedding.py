@@ -83,7 +83,8 @@ def get_vectorstore():
 
 def get_model():
     if settings.use_together:
-        from langchain_community.llms.together import Together
+        # from langchain_community.llms.together import Together
+        from langchain_together import Together
 
         return Together(
             model=settings.TOGETHERAI_MODEL,  # type: ignore
