@@ -92,11 +92,14 @@ class SupportRetriever(VectorStoreRetriever):
             ids = list(dict.fromkeys(ids))  # remove duplicates
 
             es = Elasticsearch(settings.es_url)
-            es_query = {"bool": {"filter": [{"terms": {"metadata.process_id": ids}}]}}
+            es_query = {
+                "bool": {"filter": [{"terms": {"metadata.process_id": ids}}]}
+            }  # ids must be lower case
             embed = es.search(
                 index=settings.AI_VECTORSTORE_INDEX,
                 query=es_query,
                 source_excludes="vector",
+                size=20,  # retrieving up to 20 documents from the given process_id(s)
             )
             docs: List[Document] = []
             for result in embed.body["hits"]["hits"]:  # type: ignore
