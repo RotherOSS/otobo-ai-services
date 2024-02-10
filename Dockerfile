@@ -17,6 +17,9 @@ RUN apt-get update\
 
 RUN pip install poetry==1.6.1
 
+#TODO: Remove test sr
+RUN pip install elasticsearch
+
 RUN poetry config virtualenvs.create false
 
 WORKDIR /code
