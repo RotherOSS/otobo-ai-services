@@ -35,7 +35,18 @@ Im KI-Bereich sind nahezu alle Tools und Bibliotheken noch mit Versionen 0.x bez
 
 ## Installation
 
-### Installation Datenbank, Chroma Server
+### Installation Datenbank
+
+#### Elasticsearch
+
+Um Elasticsearch in einem Docker zu laden verwenden Sie
+
+```bash
+docker run -p 9200:9200 -e "discovery.type=single-node" -e "xpack.security.enabled=false" \
+-e "xpack.security.http.ssl.enabled=false" docker.elastic.co/elasticsearch/elasticsearch:8.9.0
+```
+
+#### Chroma Server
 
 Sie können einen Chroma-Server in einem Docker-Container betreiben.
 
@@ -162,7 +173,7 @@ AI_API_KEY="<use a secret API key>"
 
 LLM_OTOBO_API_KEY="secret-to-use-otobo-ai-server"
 LLM_OLLAMA_URL="<url-from-model>"
-LLM_OLLAMA_MODEL=llama2:13b
+LLM_OLLAMA_MODEL=llama2:13b-chat
 
 ```
 
