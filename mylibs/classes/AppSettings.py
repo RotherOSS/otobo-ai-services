@@ -39,6 +39,9 @@ class AppSettings:
         self.LLM_OTOBO_API_KEY = os.getenv("LLM_OTOBO_API_KEY", None)
         self.LLM_OLLAMA_URL = os.getenv("LLM_OLLAMA_URL", "http://localhost:11434")
         self.LLM_OLLAMA_MODEL = os.getenv("LLM_OLLAMA_MODEL", "llama2:13b-chat")
+        self.LLM_OLLAMA_EMBEDDING_MODEL = os.getenv(
+            "LLM_OLLAMA_EMBEDDING_MODEL", "bge-m3"
+        )
 
         self.LLM_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "1024"))
         self.LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.1"))
