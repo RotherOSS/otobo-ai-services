@@ -29,8 +29,9 @@ def embedding():
     else:
         from langchain_community.embeddings import OllamaEmbeddings
 
+        # return OpenAIEmbeddings(model="text-embedding-3-small")
         return OllamaEmbeddings(
-            base_url=settings.LLM_OLLAMA_URL, model=settings.LLM_OLLAMA_MODEL
+            base_url=settings.LLM_OLLAMA_URL, model=settings.LLM_OLLAMA_EMBEDDING_MODEL
         )
 
 
