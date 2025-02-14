@@ -18,8 +18,8 @@ Die Anwendung kann grundsätzlich unterschiedliche Sprachmodelle verwenden, ist 
 
 Die Dokumentation der API lässt sich nach Installation leicht aufrufen:
 
-1. [Swagger](http://127.0.0.1:8000/docs#/) (http://127.0.0.1:8000/docs#/ , falls unter dieser Adresse und Port gestartet)
-2. [ReDoc](http://127.0.0.1:8000/redoc), (http://127.0.0.1:8000/redoc , falls unter dieser Adresse und Port gestartet)
+1. [Swagger](http://127.0.0.1:8000/docs#/) (<http://127.0.0.1:8000/docs#/> , falls unter dieser Adresse und Port gestartet)
+2. [ReDoc](http://127.0.0.1:8000/redoc), (<http://127.0.0.1:8000/redoc> , falls unter dieser Adresse und Port gestartet)
 
 ## Aufbau
 
@@ -154,7 +154,7 @@ docker run -d -e AI_API_KEY=ServiceApiKey -e AI_VECTORDB_AUTH_TOKEN=databaseToke
 Die API wurde mit Llama2 13b getestet.\
 [Ollama für Mac](https://ollama.ai/library/llama2)
 
-# Inbetriebnahme
+## Inbetriebnahme
 
 Nachdem alle Komponenten installiert wurden, können diese getestet werden.
 Setzen Sie zuerst die Umgebungsvariablen.
@@ -178,7 +178,7 @@ LLM_OLLAMA_MODEL=llama2:13b-chat
 ```
 
 Ist der Docker des API-Servers gestartet, können Sie auf den\
-[Swagger](http://127.0.0.1:8000/docs#/) (http://127.0.0.1:8000/docs#/)\
+[Swagger](http://127.0.0.1:8000/docs#/) (<http://127.0.0.1:8000/docs#/)\>
 falls unter dieser Adresse und Port gestartet - zugreifen.
 
 # Entwicklung
@@ -223,3 +223,25 @@ Für den Aufruf von heartbeat ist keine Authentifizierung nötig.
 Geben Sie nun unter `Authorize` den API-Key ein. Danach stehen auch alle geschützten Routen für Tests zur Verfügung.
 
 Das System ist nun einsatzbereit.
+
+## Hinweis 2
+
+Erhält man folgende Fehlermeldung, ist die Datenbank bzw. der Index leer.
+
+```
+"detail": "NotFoundError(404, 'index_not_found_exception', 'no such index [api-test]', api-test, index_or_alias)"
+```
+
+LangSmith ist auch nicht mehr in dieser Form nicht mehr kostenlos nutzbar. Bei der Fehlermeldung
+
+```
+Failed to multipart ingest runs: langsmith.utils.LangSmithAuthError
+```
+
+bitte folgende .env Variablen löschen:
+
+```
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_API_KEY=ls_...
+LANGCHAIN_PROJECT=OTOBO-AI
+```
