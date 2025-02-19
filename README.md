@@ -136,6 +136,14 @@ Das Docker-Image wird im Verzeichnis, in dem sich die Datei `Dockerimage` mit di
 
 ```bash
 docker build -t ki-werkstatt/otobo:latest .
+docker run --env-file .\.env -p 8080:8080 --name OTOBO -d ki-werkstatt/otobo:latest
+```
+
+bei Problemen auch
+
+```bash
+lock-Datei neu erstellen: poetry lock --no-cache
+sauber erstellen: docker build --no-cache -t ki-werkstatt/otobo:latest .
 ```
 
 Nachdem die Datenbank gestartet wurde (Wichtig!), kann mit diesem Befehl nun der Service gestartet werden:
@@ -223,6 +231,13 @@ Für den Aufruf von heartbeat ist keine Authentifizierung nötig.
 Geben Sie nun unter `Authorize` den API-Key ein. Danach stehen auch alle geschützten Routen für Tests zur Verfügung.
 
 Das System ist nun einsatzbereit.
+
+Sollte es Probleme mit der Python-version geben:
+Windows: pyenv installieren mit ```Invoke-WebRequest -UseBasicParsing -Uri "https://raw.githubusercontent.com/pyenv-win/pyenv-win/master/pyenv-win/install-pyenv-win.ps1" -OutFile "./install-pyenv-win.ps1"; &"./install-pyenv-win.ps1"```
+
+dann ```pyenv install 3.11.9
+poetry config virtualenvs.prefer-active-python true
+pyenv local 3.11```
 
 ## Hinweis 2
 

@@ -4,21 +4,18 @@ FROM python:3.11-slim
 
 # Install some required and optional Debian packages.
 RUN apt-get update\
- && apt-get -y --no-install-recommends install\
- "less"\
- "nano"\
- "rsync"\
- "telnet"\
- "tree"\
- "screen"\
- "vim"\
- "curl"\
- && rm -rf /var/lib/apt/lists/*
+    && apt-get -y --no-install-recommends install\
+    "less"\
+    "nano"\
+    "rsync"\
+    "telnet"\
+    "tree"\
+    "screen"\
+    "vim"\
+    "curl"\
+    && rm -rf /var/lib/apt/lists/*
 
-RUN pip install poetry==1.6.1
-
-#TODO: Remove test sr
-RUN pip install elasticsearch
+RUN pip install poetry==1.8.4
 
 RUN poetry config virtualenvs.create false
 
@@ -33,3 +30,8 @@ RUN poetry install  --no-interaction --no-ansi --no-root
 COPY ./app ./app
 
 RUN poetry install --no-interaction --no-ansi
+
+### Ist das in der docker_compose yml?
+# EXPOSE 8080
+
+# CMD exec uvicorn app.server:app --host 0.0.0.0 --port 8080 --loop asyncio
