@@ -25,10 +25,12 @@ COPY ./pyproject.toml ./README.md ./poetry.lock* ./
 
 COPY ./mylibs ./mylibs
 
+RUN poetry lock --no-update
 RUN poetry install  --no-interaction --no-ansi --no-root
 
 COPY ./app ./app
 
+RUN poetry lock --no-update
 RUN poetry install --no-interaction --no-ansi
 
 ### Ist das in der docker_compose yml?
