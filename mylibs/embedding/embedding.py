@@ -21,26 +21,26 @@ settings = AppSettings()
 
 
 def embedding():
-    if settings.use_localembedding:
-        # Self hosted embedding model (+2GB ram)
-        from langchain_community.embeddings import HuggingFaceBgeEmbeddings
+    # if settings.use_localembedding:
+    #     # Self hosted embedding model (+2GB ram)
+    #     from langchain_community.embeddings import HuggingFaceBgeEmbeddings
 
-        return HuggingFaceBgeEmbeddings(model_name=settings.embedding_model_name)
-    else:
-        from langchain_community.embeddings import OllamaEmbeddings
+    #     return HuggingFaceBgeEmbeddings(model_name=settings.embedding_model_name)
+    # else:
+    from langchain_community.embeddings import OllamaEmbeddings
 
-        # return OpenAIEmbeddings(model="text-embedding-3-small")
-        return OllamaEmbeddings(
-            base_url=settings.LLM_OLLAMA_URL, model=settings.LLM_OLLAMA_EMBEDDING_MODEL
-        )
+    # return OpenAIEmbeddings(model="text-embedding-3-small")
+    return OllamaEmbeddings(
+        base_url=settings.LLM_OLLAMA_URL, model=settings.LLM_OLLAMA_EMBEDDING_MODEL
+    )
 
 
 def embedding_function():
     """returns the embedding function depending on settings flag"""
-    if settings.use_localembedding:
-        return HuggingFaceEmbeddingFunction()
-    else:
-        return OllamaEmbeddingFunction()
+    # if settings.use_localembedding:
+    #     return HuggingFaceEmbeddingFunction()
+    # else:
+    return OllamaEmbeddingFunction()
 
 
 def get_chroma_dbclient():

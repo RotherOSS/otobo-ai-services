@@ -50,9 +50,11 @@ class AppSettings:
 
         self.TOGETHERAI_API_KEY = os.getenv("TOGETHERAI_API_KEY", None)
         self.TOGETHERAI_MODEL = os.getenv("TOGETHERAI_MODEL", None)
-        self.use_localembedding = (
-            os.getenv("USE_LOCAL_EMBEDDING", "True").lower() in self.true_values
-        )
+        # This parameter is deprecated
+        # self.use_localembedding = (
+        #     os.getenv("USE_LOCAL_EMBEDDING", "True").lower() in self.true_values
+        # )
+        self.use_localembedding = False
         self.use_together = (
             os.getenv("USE_TOGETHER", "False").lower() in self.true_values
         )
