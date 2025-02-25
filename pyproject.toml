@@ -9,14 +9,18 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = ">=3.11,<3.13"
 uvicorn = "^0.23.2"
-langchain = "0.1.4"
-fastapi = "0.104.1"
-pydantic = "<2"
-chromadb = "0.4.22"
-elasticsearch = "8.12.0"
-# sentence-transformers = "^2.2.2"
+fastapi = "^0.115.6"
+loguru = "^0.7.3"
+langchain = "^0.3.14"
+langchain-community = "^0.3.14"
+langchain-ollama = "^0.2.2"
+langchain-experimental = "^0.3.4"
+langfuse = "^2.59.3"
+langchain-elasticsearch = "^0.3.2"
+langgraph = "^0.2.74"
+
 
 [tool.poetry.group.dev.dependencies]
 langchain-cli = ">=0.0.15"

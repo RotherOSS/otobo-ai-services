@@ -58,15 +58,23 @@ class AppSettings:
         self.use_together = (
             os.getenv("USE_TOGETHER", "False").lower() in self.true_values
         )
-        self.use_chromadb = (
-            os.getenv("USE_CHROMADB", "False").lower() in self.true_values
-        )
+        self.use_chromadb = "False"
+        # self.use_chromadb = (
+        #     os.getenv("USE_CHROMADB", "False").lower() in self.true_values
+        # )
 
         self.fastapi_title = "Ticket Answering Service"
         self.fastapi_version = "1.0"
         self.fastapi_description = (
             "API server using RAG to answer questions based on tickets"
         )
+
+        self.LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY", None)
+        self.LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY", None)
+        self.LANGFUSE_HOST = os.getenv("LANGFUSE_HOST", "http://localhost:3000")
+
+        self.LOG_FILE = os.getenv("LOG_FILE", "./data/log/apilog.log")
+        self.LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG")
 
         # had bad results with BAAI/bge-base-en-v1.5
         # WARNING: changing the model will change the vector dimension

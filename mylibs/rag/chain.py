@@ -1,5 +1,5 @@
 from langchain.prompts import ChatPromptTemplate
-from langchain.pydantic_v1 import BaseModel
+from pydantic import BaseModel
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import (
     RunnableLambda,

@@ -1,6 +1,8 @@
 from typing import List
-from chromadb import Where
-from elasticsearch import Elasticsearch
+
+# from chromadb import Where
+# from elasticsearch import Elasticsearch
+from langchain_elasticsearch import ElasticsearchStore
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import (
@@ -9,24 +11,28 @@ from langchain.schema.runnable import (
     RunnableLambda,
 )
 from langchain_core.vectorstores import VectorStoreRetriever
-from langchain_core.pydantic_v1 import Field
+
+# from langchain_core.pydantic_v1 import Field
 from langchain_core.documents import Document
-from langchain.document_transformers.embeddings_redundant_filter import (
-    EmbeddingsRedundantFilter,
-)
+
+# from langchain.document_transformers.embeddings_redundant_filter import (
+#     EmbeddingsRedundantFilter,
+# )
+from langchain_community.document_transformers import EmbeddingsRedundantFilter
 from langchain.retrievers.document_compressors import (
     DocumentCompressorPipeline,
     EmbeddingsFilter,
 )
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.retrievers import ContextualCompressionRetriever
+from pydantic import Field
 
 from mylibs.classes.AppSettings import AppSettings
 from mylibs.embedding.embedding import (
-    get_chroma_dbclient,
+    # get_chroma_dbclient,
     get_model,
     embedding,
-    embedding_function,
+    # embedding_function,
     get_vectorstore,
     query_embeddings,
 )
@@ -58,57 +64,60 @@ class SupportRetriever(VectorStoreRetriever):
         Returns:
             List[Document]: list of all text chunks (maybe including overlapping)
         """
-        if settings.use_chromadb:
-            get_task_result = query_embeddings(
-                query_texts=[query],
-                # where={"type": "question"},
-                n_results=3,
-                include=["metadatas"],
+        # if settings.use_chromadb:
+        #     get_task_result = query_embeddings(
+        #         query_texts=[query],
+        #         # where={"type": "question"},
+        #         n_results=3,
+        #         include=["metadatas"],
+        #     )
+        #     ids = [el["process_id"] for el in get_task_result["metadatas"][0]]  # type: ignore
+        #     ids = list(dict.fromkeys(ids))  # remove duplicates
+        #     chroma_client = get_chroma_dbclient()
+        #     collection = chroma_client.get_collection(
+        #         name=settings.AI_VECTORSTORE_INDEX,
+        #         embedding_function=embedding_function(),
+        #     )
+
+        #     where: Where = {"process_id": {"$in": ids}}
+        #     get_all_result = collection.get(where=where, include=["documents"])
+
+        #     docs: List[Document] = []
+        #     for result in get_all_result["documents"]:  # type: ignore
+        #         doc = Document(page_content=result, metadata={"ids": ids})
+        #         docs.append(doc)
+
+        #     return docs
+        # else:
+        get_task_result = await query_embeddings(
+            query_texts=[query],
+            # where={"type": "question"},
+            n_results=3,
+        )
+        ids = [doc.metadata["process_id"].lower() for doc in get_task_result]  # type: ignore
+        ids = list(dict.fromkeys(ids))  # remove duplicates
+
+        # es = Elasticsearch(settings.es_url)
+        es = ElasticsearchStore(
+            es_url=settings.es_url, index_name=settings.AI_VECTORSTORE_INDEX
+        )
+        es_query = {
+            "bool": {"filter": [{"terms": {"metadata.process_id": ids}}]}
+        }  # ids must be lower case
+        embed = es.search(
+            index=settings.AI_VECTORSTORE_INDEX,
+            query=es_query,
+            source_excludes="vector",
+            size=20,  # retrieving up to 20 documents from the given process_id(s)
+        )
+        docs: List[Document] = []
+        for result in embed.body["hits"]["hits"]:  # type: ignore
+            doc = Document(
+                page_content=result["_source"]["text"], metadata={"ids": ids}
             )
-            ids = [el["process_id"] for el in get_task_result["metadatas"][0]]  # type: ignore
-            ids = list(dict.fromkeys(ids))  # remove duplicates
-            chroma_client = get_chroma_dbclient()
-            collection = chroma_client.get_collection(
-                name=settings.AI_VECTORSTORE_INDEX,
-                embedding_function=embedding_function(),
-            )
+            docs.append(doc)
 
-            where: Where = {"process_id": {"$in": ids}}
-            get_all_result = collection.get(where=where, include=["documents"])
-
-            docs: List[Document] = []
-            for result in get_all_result["documents"]:  # type: ignore
-                doc = Document(page_content=result, metadata={"ids": ids})
-                docs.append(doc)
-
-            return docs
-        else:
-            get_task_result = await query_embeddings(
-                query_texts=[query],
-                # where={"type": "question"},
-                n_results=3,
-            )
-            ids = [doc.metadata["process_id"].lower() for doc in get_task_result]  # type: ignore
-            ids = list(dict.fromkeys(ids))  # remove duplicates
-
-            es = Elasticsearch(settings.es_url)
-            es_query = {
-                "bool": {"filter": [{"terms": {"metadata.process_id": ids}}]}
-            }  # ids must be lower case
-            embed = es.search(
-                index=settings.AI_VECTORSTORE_INDEX,
-                query=es_query,
-                source_excludes="vector",
-                size=20,  # retrieving up to 20 documents from the given process_id(s)
-            )
-            docs: List[Document] = []
-            for result in embed.body["hits"]["hits"]:  # type: ignore
-                doc = Document(
-                    page_content=result["_source"]["text"], metadata={"ids": ids}
-                )
-                docs.append(doc)
-
-            return docs
+        return docs
 
 
 embedding = embedding()

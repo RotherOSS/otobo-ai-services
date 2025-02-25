@@ -1,10 +1,13 @@
-from typing import Dict, List, Optional
-from chromadb.api.types import OneOrMany, ID, IDs, Include
+from typing import Any, Dict, List, Optional, NotRequired, TypedDict
+
+# from chromadb.api.types import OneOrMany, ID, IDs, Include
 from fastapi import HTTPException, FastAPI, Depends, Body
 from fastapi.responses import RedirectResponse
-from langchain.pydantic_v1 import BaseModel
+from pydantic import BaseModel
 from mylibs.auth.auth import get_api_key
-from mylibs.rag_chroma.chain import chain as rag_chroma_chain
+
+# from mylibs.rag.chain import chain as rag_chain
+from mylibs.rag.graph import graph as rag_graph
 from mylibs.rag_compression.chain import chain as rag_compression_chain
 from mylibs.rag_task.chain import chain as rag_task_chain
 from mylibs.classes.AppSettings import AppSettings
@@ -18,15 +21,62 @@ from mylibs.embedding.embedding import (
     put_embeddings,
     query_embeddings,
 )
+from loguru import logger
+import os
+from contextlib import asynccontextmanager
+from langchain_core.runnables.config import RunnableConfig
+from langserve import add_routes
 
+
+from langchain_core.documents import Document
 
 settings = AppSettings()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    ###  before the application starts ###
+    os.makedirs("./data/log", exist_ok=True)
+
+    logger.add(
+        settings.LOG_FILE,
+        colorize=False,
+        enqueue=True,
+        level=os.getenv("LOGLEVEL", default="DEBUG"),
+        rotation="1 MB",
+    )
+    logger.success(f"Starting server with loglevel: {settings.LOG_LEVEL}")
+
+    ### after the application has finished ###
+    yield
+    # watchfolder.stop()
+    logger.success("Server has shut down gracefully.")
+
 
 app = FastAPI(
     title=settings.fastapi_title,
     version=settings.fastapi_version,
     description=settings.fastapi_description,
+    lifespan=lifespan,
 )
+
+config = None
+if settings.LANGFUSE_SECRET_KEY:
+    from langfuse.callback import CallbackHandler
+
+    langfuse_handler = CallbackHandler()
+    try:
+        # Todo: This method is blocking. It is discouraged to use it in production code.
+        langfuse_handler.auth_check()
+        logger.success("Verbindung mit Langfuse hergestellt.")
+        config = RunnableConfig(callbacks=[langfuse_handler])
+    except Exception as e:
+        logger.error(
+            "Die Authentifizierung mit Langfuse ist fehlgeschlagen. Sind die env-Variablen LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY und LANGFUSE_HOST gesetzt?"
+        )
+        logger.error(e)
+else:
+    logger.info("Langfuse ist deaktiviert.")
 
 
 ###################
@@ -52,18 +102,39 @@ class Question(BaseModel):
     question: str
 
 
-@app.post(
-    "/ai/tas/create-answer",
-    name="Invoke LLM",
-    description="Answers the submitted question using the stored data records.",
-    dependencies=[Depends(get_api_key)],
+# @app.post(
+#     "/ai/tas/create-answer",
+#     name="Invoke LLM",
+#     description="Answers the submitted question using the stored data records.",
+#     dependencies=[Depends(get_api_key)],
+# )
+# async def rag(body: Question):
+#     try:
+#         return await rag_chain.ainvoke(body.question)
+#     except Exception as e:
+#         print(e)
+#         raise HTTPException(status_code=500, detail=str(e))
+class InputDict(TypedDict):
+    question: str
+    generation: NotRequired[str]
+    documents: NotRequired[List[Document]]
+    collection_name: NotRequired[str]
+
+
+class OutputDict(TypedDict):
+    question: str
+    generation: str
+    documents: List[Document]
+    collection_name: NotRequired[str]
+
+
+add_routes(
+    app,
+    rag_graph.with_config(config),
+    input_type=InputDict,
+    output_type=OutputDict,
+    path="/ai/tas/create-answer",
 )
-async def rag(body: Question):
-    try:
-        return await rag_chroma_chain.ainvoke(body.question)
-    except Exception as e:
-        print(e)
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post(
@@ -107,18 +178,18 @@ async def rag(body: Question):
     dependencies=[Depends(get_api_key)],
 )
 async def filter(
-    ids: Optional[OneOrMany[ID]] = None,
+    ids: Any | None = None,
     process_id: Optional[str] | None = Body(default=None),
     limit: Optional[int] | None = Body(default=None),
     offset: Optional[int] | None = Body(default=None),
-    include: Include = ["metadatas", "documents"],
+    # include: Include = ["metadatas", "documents"],
 ):
     return await get_embeddings(
         ids=ids,
         process_id=process_id,
         limit=limit,
         offset=offset,
-        include=include,
+        # include=include,
     )
 
 
@@ -136,13 +207,13 @@ async def post_query(
     query_texts: Optional[List[str]] = None,
     where: Optional[List[Dict]] = None,
     n_results: int = Body(default=10),
-    include: Include = ["metadatas", "documents"],
+    # include: Include = ["metadatas", "documents"],
 ):
     return await query_embeddings(
         query_texts=query_texts,
         where_filter=where,
         n_results=n_results,
-        include=include,
+        # include=include,
     )
 
 
@@ -182,7 +253,7 @@ async def delete(id: str):
     description="Delete embedded data by filter.\nAt least one of the optional parameters 'ids', 'where' must be specified.",
 )
 async def delete_many(
-    ids: Optional[IDs] = None,
+    ids: Any | None = None,
     where: Optional[Dict] = None,
 ):
     return await delete_embeddings(

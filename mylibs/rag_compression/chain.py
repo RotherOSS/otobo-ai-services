@@ -5,9 +5,11 @@ from langchain.schema.runnable import (
     RunnablePassthrough,
     RunnableLambda,
 )
-from langchain.document_transformers.embeddings_redundant_filter import (
-    EmbeddingsRedundantFilter,
-)
+
+# from langchain.document_transformers.embeddings_redundant_filter import (
+#     EmbeddingsRedundantFilter,
+# )
+from langchain_community.document_transformers import EmbeddingsRedundantFilter
 from langchain.retrievers.document_compressors import (
     DocumentCompressorPipeline,
     EmbeddingsFilter,
