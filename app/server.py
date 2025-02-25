@@ -1,15 +1,16 @@
-from typing import Any, Dict, List, Optional, NotRequired, TypedDict
+import os
+from contextlib import asynccontextmanager
+from typing import Any, Dict, List, NotRequired, Optional, TypedDict
 
-# from chromadb.api.types import OneOrMany, ID, IDs, Include
-from fastapi import HTTPException, FastAPI, Depends, Body
+from fastapi import Body, Depends, FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
+from langchain_core.documents import Document
+from langchain_core.runnables.config import RunnableConfig
+from langserve import add_routes
+from loguru import logger
 from pydantic import BaseModel
-from mylibs.auth.auth import get_api_key
 
-# from mylibs.rag.chain import chain as rag_chain
-from mylibs.rag.graph import graph as rag_graph
-from mylibs.rag_compression.chain import chain as rag_compression_chain
-from mylibs.rag_task.chain import chain as rag_task_chain
+from mylibs.auth.auth import get_api_key
 from mylibs.classes.AppSettings import AppSettings
 from mylibs.embedding.embedding import (
     UploadTicket,
@@ -21,14 +22,9 @@ from mylibs.embedding.embedding import (
     put_embeddings,
     query_embeddings,
 )
-from loguru import logger
-import os
-from contextlib import asynccontextmanager
-from langchain_core.runnables.config import RunnableConfig
-from langserve import add_routes
-
-
-from langchain_core.documents import Document
+from mylibs.rag.graph import graph as rag_graph
+from mylibs.rag_compression.chain import chain as rag_compression_chain
+from mylibs.rag_task.chain import chain as rag_task_chain
 
 settings = AppSettings()
 

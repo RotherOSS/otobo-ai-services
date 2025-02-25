@@ -1,86 +1,27 @@
-import uuid
 from typing import Any, Dict, List, Optional
+
 from fastapi import HTTPException
-
-# import chromadb
-# from chromadb import GetResult, QueryResult
-# from chromadb.api.types import ID, IDs, Include, OneOrMany, Where
-# from chromadb.config import Settings as ChromaDbSettings
-# from elasticsearch import Elasticsearch
-from langchain_elasticsearch import ElasticsearchStore
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-
-# from langchain_community.vectorstores.chroma import Chroma
-# from langchain_community.vectorstores.elasticsearch import ElasticsearchStore
-
-# from mylibs.classes.SefHostedEmbeddingFunction import (
-#     HuggingFaceEmbeddingFunction,
-#     OllamaEmbeddingFunction,
-# )
-from mylibs.classes.AppSettings import AppSettings
-from mylibs.classes.Ticket import Ticket, UploadTicket
+from langchain_elasticsearch import ElasticsearchStore
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 from loguru import logger
+
+from mylibs.classes.AppSettings import AppSettings
+from mylibs.classes.Ticket import Ticket, UploadTicket
 
 settings = AppSettings()
 
 
 @logger.catch(reraise=True)
 def embedding():
-    # if settings.use_localembedding:
-    #     # Self hosted embedding model (+2GB ram)
-    #     from langchain_community.embeddings import HuggingFaceBgeEmbeddings
-
-    #     return HuggingFaceBgeEmbeddings(model_name=settings.embedding_model_name)
-    # else:
-
-    # return OpenAIEmbeddings(model="text-embedding-3-small")
     return OllamaEmbeddings(
         base_url=settings.LLM_OLLAMA_URL, model=settings.LLM_OLLAMA_EMBEDDING_MODEL
     )
 
 
-# def embedding_function():
-#     """returns the embedding function depending on settings flag"""
-#     # if settings.use_localembedding:
-#     #     return HuggingFaceEmbeddingFunction()
-#     # else:
-#     return OllamaEmbeddingFunction()
-
-
-# def get_chroma_dbclient():
-#     """Helper function to get db client"""
-#     try:
-#         if settings.AI_VECTORDB_AUTH_TOKEN is None:
-#             return chromadb.HttpClient(
-#                 host=settings.AI_VECTORDB_HOST,
-#                 port=settings.AI_VECTORDB_PORT,
-#             )
-#         else:
-#             return chromadb.HttpClient(
-#                 host=settings.AI_VECTORDB_HOST,
-#                 port=settings.AI_VECTORDB_PORT,
-#                 settings=ChromaDbSettings(
-#                     chroma_client_auth_provider="chromadb.auth.token.TokenAuthClientProvider",
-#                     chroma_client_auth_credentials=settings.AI_VECTORDB_AUTH_TOKEN,
-#                 ),
-#             )
-#     except Exception as e:
-#         print("error in get_dbclient:")
-#         print(e)
-#         raise e
-
-
 @logger.catch(reraise=True)
 def get_vectorstore():
     db_embedding = embedding()
-    # if settings.use_chromadb:
-    #     client = get_chroma_dbclient()
-    #     vectorstore = Chroma(
-    #         collection_name=settings.AI_VECTORSTORE_INDEX, embedding_function=db_embedding, client=client  # type: ignore
-    #     )
-    #     return vectorstore
-    # else:
     return ElasticsearchStore(
         es_url=settings.es_url,
         index_name=settings.AI_VECTORSTORE_INDEX,
@@ -90,19 +31,6 @@ def get_vectorstore():
 
 @logger.catch(reraise=True)
 def get_model(use_ollama_json_format: bool = False):
-    # if settings.use_together:
-    #     # from langchain_community.llms.together import Together
-    #     from langchain_together import Together
-
-    #     return Together(
-    #         model=settings.TOGETHERAI_MODEL,  # type: ignore
-    #         together_api_key=settings.TOGETHERAI_API_KEY,  # type: ignore
-    #         max_tokens=2048,
-    #         temperature=settings.LLM_TEMPERATURE,
-    #     )
-    # else:
-    #     from langchain_community.llms.ollama import Ollama
-
     if use_ollama_json_format:
         return ChatOllama(
             base_url=settings.LLM_OLLAMA_URL,
@@ -152,10 +80,6 @@ async def get_heartbeat():
         int: The current time in nanoseconds since epoch
     """
     try:
-        # if settings.use_chromadb:
-        #     return get_chroma_dbclient().heartbeat()
-        # else:
-
         client = ElasticsearchStore(
             es_url=settings.es_url, index_name=settings.AI_VECTORSTORE_INDEX
         )
@@ -179,13 +103,6 @@ async def get_embedding(id: str):
         GetResult: A GetResult object containing the results.
     """ """"""
     try:
-        # if settings.use_chromadb:
-        #     client = get_chroma_dbclient()
-        #     collection = client.get_collection(name=settings.AI_VECTORSTORE_INDEX)
-        #     embedding = collection.get(ids=id, include=["documents", "metadatas"])
-        #     return embedding
-        # else:
-        # es = Elasticsearch(settings.es_url)
         es = ElasticsearchStore(
             es_url=settings.es_url, index_name=settings.AI_VECTORSTORE_INDEX
         )
@@ -223,24 +140,6 @@ async def get_embeddings(
         GetResult: A GetResult object containing the results.
     """ """"""
     try:
-        # if settings.use_chromadb:
-        #     client = get_chroma_dbclient()
-        #     collection = client.get_collection(name=settings.AI_VECTORSTORE_INDEX)
-        #     where: Where | None
-        #     if process_id is not None:
-        #         where = {"process_id": process_id}
-        #     else:
-        #         where = None
-        #     embed = collection.get(
-        #         ids=ids,
-        #         where=where,
-        #         limit=limit,
-        #         offset=offset,
-        #         include=include,
-        #     )
-        #     return embed
-        # else:
-        # es = Elasticsearch(settings.es_url)
         es = ElasticsearchStore(
             es_url=settings.es_url, index_name=settings.AI_VECTORSTORE_INDEX
         )
@@ -251,11 +150,6 @@ async def get_embeddings(
             query["bool"]["filter"].append(
                 {"match": {"metadata.process_id": process_id}}
             )
-        # todo include ggf erweitern
-        # if "embeddings" not in include:
-        #     source_excludes = "vector"
-        # else:
-        #     source_excludes = None
         embed = es.search(
             index=settings.AI_VECTORSTORE_INDEX,
             query=query,
@@ -294,21 +188,6 @@ async def query_embeddings(
         QueryResult: _description_
     """
     try:
-        # if settings.use_chromadb:
-        #     client = get_chroma_dbclient()
-        #     collection = client.get_collection(
-        #         name=settings.AI_VECTORSTORE_INDEX,
-        #         embedding_function=embedding_function(),
-        #     )
-        #     result = collection.query(
-        #         query_embeddings=None,
-        #         query_texts=query_texts,
-        #         n_results=n_results,
-        #         where=where_filter[0],
-        #         include=include,
-        #     )
-        #     return result
-        # else:
         es: ElasticsearchStore = get_vectorstore()  # type: ignore
         # include parameter not supported with Elasticsearch
         where_list = where_filter if where_filter else None
@@ -340,31 +219,6 @@ async def put_embeddings(tickets: List[UploadTicket]):
 
     all_ids = []
     try:
-        # if settings.use_chromadb:
-        #     client = get_chroma_dbclient()
-        #     chroma_db = client.get_or_create_collection(
-        #         name=settings.AI_VECTORSTORE_INDEX,
-        #         embedding_function=embedding_function(),  # type: ignore
-        #     )
-        #     for ticket in tickets:
-        #         text_splitter = RecursiveCharacterTextSplitter(
-        #             chunk_size=settings.embedding_chunk_size,
-        #             chunk_overlap=settings.embedding_chunk_overlap,
-        #         )
-        #         all_splits = text_splitter.create_documents([ticket.document])
-
-        #         docs = [item.page_content for item in all_splits]
-        #         meta = get_meta(ticket)
-
-        #         metas: List[chromadb.Metadata] = [
-        #             {**meta, "chunk_id": i, "chunks": len(docs)}
-        #             for i in range(len(docs))
-        #         ]
-
-        #         ids: chromadb.IDs = [str(uuid.uuid4()) for i in range(len(docs))]
-        #         chroma_db.add(ids=ids, documents=docs, metadatas=metas)  # type: ignore
-        #         all_ids = all_ids + ids
-        # else:
         elasticdb: ElasticsearchStore = get_vectorstore()  # type: ignore
         for ticket in tickets:
             text_splitter = RecursiveCharacterTextSplitter(
@@ -402,13 +256,6 @@ async def delete_embedding(id: str):
         str: deleted id
     """
     try:
-        # if settings.use_chromadb:
-        #     client = get_chroma_dbclient()
-        #     collection = client.get_collection(name=settings.AI_VECTORSTORE_INDEX)
-        #     collection.delete(ids=[id])
-        #     return {"id": id}
-        # else:
-        # es = Elasticsearch(settings.es_url)
         es = ElasticsearchStore(
             es_url=settings.es_url, index_name=settings.AI_VECTORSTORE_INDEX
         )
@@ -440,16 +287,6 @@ async def delete_embeddings(
         Dict: ids when Chroma, deleted when Elasticsearch
     """ """"""
     try:
-        # if settings.use_chromadb:
-        #     client = get_chroma_dbclient()
-        #     collection = client.get_collection(name=settings.AI_VECTORSTORE_INDEX)
-        #     collection.delete(
-        #         ids=ids,
-        #         where=where,
-        #     )
-        #     return {"ids": ids}
-        # else:
-        # es = Elasticsearch(settings.es_url)
         es = ElasticsearchStore(
             es_url=settings.es_url, index_name=settings.AI_VECTORSTORE_INDEX
         )
