@@ -22,12 +22,7 @@ RUN poetry config virtualenvs.create false
 WORKDIR /code
 
 COPY ./pyproject.toml ./README.md ./poetry.lock* ./
-
 COPY ./mylibs ./mylibs
-
-RUN poetry lock --no-update
-RUN poetry install  --no-interaction --no-ansi --no-root
-
 COPY ./app ./app
 
 RUN poetry lock --no-update
