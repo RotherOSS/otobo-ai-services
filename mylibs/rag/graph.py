@@ -37,8 +37,10 @@ def retrieve(state: GraphState):
     vectorstore = get_vectorstore()
     retriever = vectorstore.as_retriever(search_kwargs=settings.rag_search_kwargs)
 
+    logger.debug(f"question: {question}")
     documents = retriever.invoke(
-        question, config={"configurable": {"search_kwargs": {"k": 8}}}
+        question,
+        # config={"configurable": {"search_kwargs": {"k": 8}}}
     )
     return {"documents": documents}
 
