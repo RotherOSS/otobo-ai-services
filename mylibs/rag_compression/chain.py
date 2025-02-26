@@ -18,11 +18,11 @@ from langchain.retrievers import ContextualCompressionRetriever
 from langchain.text_splitter import CharacterTextSplitter
 
 from mylibs.classes.AppSettings import AppSettings
-from mylibs.embedding.embedding import embedding, get_model, get_vectorstore
+from mylibs.embedding.embedding import get_embeddingsmodel, get_model, get_vectorstore
 from mylibs.utils.utils import get_content, get_prompt
 
 settings = AppSettings()
-embedding = embedding()
+get_embeddingsmodel = get_embeddingsmodel()
 vectorstore = get_vectorstore()
 
 # ToDo: Optimize here:
@@ -42,9 +42,9 @@ template = get_prompt(instruction, sys_prompt)
 prompt_template = ChatPromptTemplate.from_template(template)
 
 splitter = CharacterTextSplitter(chunk_size=300, chunk_overlap=0, separator=". ")
-redundant_filter = EmbeddingsRedundantFilter(embeddings=embedding)
+redundant_filter = EmbeddingsRedundantFilter(embeddings=get_embeddingsmodel)
 relevant_filter = EmbeddingsFilter(
-    embeddings=embedding, similarity_threshold=settings.SIMILARITY_THRESHOLD
+    embeddings=get_embeddingsmodel, similarity_threshold=settings.SIMILARITY_THRESHOLD
 )
 pipeline_compressor = DocumentCompressorPipeline(
     transformers=[splitter, redundant_filter, relevant_filter]

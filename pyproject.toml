@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "otobo-tas"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
 authors = ["Horst Amper <horst.amper@ki-werkstatt.net>"]
 readme = "README.md"
@@ -9,7 +9,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.11,<3.13"
+python = ">=3.12,<3.13"
 uvicorn = "^0.23.2"
 fastapi = "^0.115.6"
 loguru = "^0.7.3"
@@ -20,6 +20,7 @@ langchain-experimental = "^0.3.4"
 langfuse = "^2.59.3"
 langchain-elasticsearch = "^0.3.2"
 langgraph = "^0.2.74"
+elasticsearch = "^8.17.1"
 
 
 [tool.poetry.group.dev.dependencies]

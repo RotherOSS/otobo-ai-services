@@ -20,11 +20,11 @@ from mylibs.embedding.embedding import (
     get_embeddings,
     get_heartbeat,
     put_embeddings,
-    query_embeddings,
+    aquery_embeddings,
 )
 from mylibs.rag.graph import graph as rag_graph
 from mylibs.rag_compression.chain import chain as rag_compression_chain
-from mylibs.rag_task.chain import chain as rag_task_chain
+from mylibs.rag_task.graph import graph as rag_task_graph
 
 settings = AppSettings()
 
@@ -85,7 +85,7 @@ async def redirect_root_to_docs():
 
 @app.get(
     "/ai/db/heartbeat",
-    description="Get the current time in nanoseconds since epoch. Used to check if the database server is alive.",
+    description="Checks whether the database is reachable.",
 )
 async def heartbeat():
     return await get_heartbeat()
@@ -130,6 +130,7 @@ add_routes(
     input_type=InputDict,
     output_type=OutputDict,
     path="/ai/tas/create-answer",
+    dependencies=[Depends(get_api_key)],
 )
 
 
@@ -148,19 +149,26 @@ async def rag(body: Question):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@app.post(
-    "/ai/tas/task",
-    name="Task compression",
-    description="Answers the submitted question using the complete task.",
+# @app.post(
+#     "/ai/tas/task",
+#     name="Task compression",
+#     description="Answers the submitted question using the complete task.",
+#     dependencies=[Depends(get_api_key)],
+# )
+# async def rag(body: Question):
+#     try:
+#         response = await rag_task_chain.ainvoke(body.question)
+#         return response
+#     except Exception as e:
+#         print(e)
+#         raise HTTPException(status_code=500, detail=str(e))
+
+add_routes(
+    app,
+    rag_task_graph.with_config(config),
+    path="/ai/tas/task",
     dependencies=[Depends(get_api_key)],
 )
-async def rag(body: Question):
-    try:
-        response = await rag_task_chain.ainvoke(body.question)
-        return response
-    except Exception as e:
-        print(e)
-        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post(
@@ -205,7 +213,7 @@ async def post_query(
     n_results: int = Body(default=10),
     # include: Include = ["metadatas", "documents"],
 ):
-    return await query_embeddings(
+    return await aquery_embeddings(
         query_texts=query_texts,
         where_filter=where,
         n_results=n_results,

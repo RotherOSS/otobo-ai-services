@@ -31,11 +31,13 @@ class AppSettings:
         self.AI_API_KEY = os.getenv("AI_API_KEY")
         self.AI_API_SERVER_HOST = os.getenv("AI_API_SERVER_HOST", "0.0.0.0")
         self.AI_API_SERVER_PORT = int(os.getenv("AI_API_SERVER_PORT", "8080"))
+
         self.AI_VECTORDB_HOST = os.getenv("AI_VECTORDB_HOST", "http://localhost")
         self.AI_VECTORDB_PORT = os.getenv("AI_VECTORDB_PORT", "9200")
         self.AI_VECTORDB_AUTH_TOKEN = os.getenv("AI_VECTORDB_AUTH_TOKEN", None)
         self.AI_VECTORSTORE_INDEX = os.getenv("AI_VECTORSTORE_INDEX", "documents")
         self.es_url = f"{self.AI_VECTORDB_HOST}:{self.AI_VECTORDB_PORT}"
+
         self.LLM_OTOBO_API_KEY = os.getenv("LLM_OTOBO_API_KEY", None)
         self.LLM_OLLAMA_URL = os.getenv("LLM_OLLAMA_URL", "http://localhost:11434")
         self.LLM_OLLAMA_MODEL = os.getenv("LLM_OLLAMA_MODEL", "llama2:13b-chat")
@@ -48,17 +50,13 @@ class AppSettings:
         self.SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.75"))
         self.REPLICATE_API_TOKEN = os.getenv("REPLICATE_API_TOKEN", None)
 
-        self.TOGETHERAI_API_KEY = os.getenv("TOGETHERAI_API_KEY", None)
-        self.TOGETHERAI_MODEL = os.getenv("TOGETHERAI_MODEL", None)
-        # This parameter is deprecated
-        # self.use_localembedding = (
-        #     os.getenv("USE_LOCAL_EMBEDDING", "True").lower() in self.true_values
+        # self.TOGETHERAI_API_KEY = os.getenv("TOGETHERAI_API_KEY", None)
+        # self.TOGETHERAI_MODEL = os.getenv("TOGETHERAI_MODEL", None)
+        # self.use_localembedding = False
+        # self.use_together = (
+        #     os.getenv("USE_TOGETHER", "False").lower() in self.true_values
         # )
-        self.use_localembedding = False
-        self.use_together = (
-            os.getenv("USE_TOGETHER", "False").lower() in self.true_values
-        )
-        self.use_chromadb = "False"
+        # self.use_chromadb = "False"
         # self.use_chromadb = (
         #     os.getenv("USE_CHROMADB", "False").lower() in self.true_values
         # )
@@ -79,9 +77,11 @@ class AppSettings:
         # had bad results with BAAI/bge-base-en-v1.5
         # WARNING: changing the model will change the vector dimension
         # so you must rebuild the complete embedding
-        self.embedding_model_name = "BAAI/bge-large-en-v1.5"
+        # self.embedding_model_name = "BAAI/bge-large-en-v1.5"
+
         self.embedding_chunk_size = 1100
         self.embedding_chunk_overlap = 100
+        # TODO: not working yet
         self.rag_search_kwargs = (
             {
                 "k": int(os.getenv("RAG_K", "3")),
@@ -98,11 +98,11 @@ class AppSettings:
         if os.getenv("AI_API_KEY") is None:
             raise ValueError("Enviroment variable 'AI_API_KEY' must be set.")
 
-        if self.use_together:
-            if self.TOGETHERAI_API_KEY is None or self.TOGETHERAI_MODEL is None:
-                raise ValueError(
-                    "If 'USE_TOGETHER' is true enviroment variable 'TOGETHERAI_API_KEY' and 'TOGETHERAI_MODEL' must be set."
-                )
+        # if self.use_together:
+        #     if self.TOGETHERAI_API_KEY is None or self.TOGETHERAI_MODEL is None:
+        #         raise ValueError(
+        #             "If 'USE_TOGETHER' is true enviroment variable 'TOGETHERAI_API_KEY' and 'TOGETHERAI_MODEL' must be set."
+        #         )
 
     def getenv(self, key: str, default=None):
         return os.getenv(key, default)
