@@ -260,3 +260,16 @@ LANGCHAIN_TRACING_V2=true
 LANGCHAIN_API_KEY=ls_...
 LANGCHAIN_PROJECT=OTOBO-AI
 ```
+
+## Bugfix
+
+Mega-fieser Bug in Langchain. Ums kurz zu fassen. In den Tiefen der Runnables überschreibt Langchain die Runnabe_Config, so dass wenn du mit LangGraph einen Agent baust und ihn über LangServe bereitstellst, wird plötzlich von LangFuse (ich weiß, viele Langs) nicht mehr mitgeloggt. \
+Das waren ein paar stressige Tage...
+
+Grund: In ```.../lib/python3.12/site-packages/langgraph/utils/config.py```  bzw. im Container
+```/usr/local/lib/python3.12/site-packages/langgraph/utils/config.py``` überschreibt ensure_config die Callbackhandler
+
+### Workaround
+
+Im Ordner bugfix liegt eine modifizierte config.py. Diese muss in den Container kopiert werden NACHDEM poetry gelaufen ist:
+```COPY ./bugfix/config.py /usr/local/lib/python3.12/site-packages/langgraph/utils/config.py```
