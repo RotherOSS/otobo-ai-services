@@ -28,7 +28,9 @@ COPY ./app ./app
 RUN poetry lock --no-update
 RUN poetry install --no-interaction --no-ansi
 
-### Ist das in der docker_compose yml?
+### BUGFIX
+COPY ./bugfix/config.py /usr/local/lib/python3.12/site-packages/langgraph/utils/config.py
+
 # EXPOSE 8080
 
 # CMD exec uvicorn app.server:app --host 0.0.0.0 --port 8080 --loop asyncio
