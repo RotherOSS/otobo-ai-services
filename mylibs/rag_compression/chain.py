@@ -25,7 +25,6 @@ settings = AppSettings()
 get_embeddingsmodel = get_embeddingsmodel()
 vectorstore = get_vectorstore()
 
-# ToDo: Optimize here:
 # depending on the chunk bigger k?
 # actually only embeddings with type answer are used by the llm
 new_settings = settings.rag_search_kwargs.copy()

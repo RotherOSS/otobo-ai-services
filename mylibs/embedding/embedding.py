@@ -1,16 +1,24 @@
 from typing import Any, Dict, List, Optional
 
-from annotated_types import T
+from elasticsearch import Elasticsearch
 from fastapi import HTTPException
-from httpx import get
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_elasticsearch import ElasticsearchStore
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 from loguru import logger
+from pydantic import BaseModel
 
 from mylibs.classes.AppSettings import AppSettings
 from mylibs.classes.Ticket import Ticket, UploadTicket
-from elasticsearch import Elasticsearch
+from typing import Optional
+
+from langchain.chains.query_constructor.ir import (
+    Comparator,
+    Comparison,
+    Operation,
+    Operator,
+)
+from langchain_community.query_constructors.elasticsearch import ElasticsearchTranslator
 
 settings = AppSettings()
 
@@ -109,8 +117,7 @@ async def get_embedding(id: str):
         GetResult: A GetResult object containing the results.
     """ """"""
     try:
-        es = get_vectorstore(with_embedding=False)
-        # TODO: get gibt es nicht mehr
+        es = Elasticsearch(hosts=[settings.es_url])
         embedding = es.get(index=settings.AI_VECTORSTORE_INDEX, id=id)
         return embedding
     except Exception as e:
@@ -118,10 +125,57 @@ async def get_embedding(id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class Search(BaseModel):
+    ids: Optional[List[str]] = None
+    process_id: Optional[str] = None
+    gdpr_id: Optional[str] = None
+    type: Optional[str] = None
+
+
+def construct_comparisons(query: Search):
+    comparisons = []
+    # actually not working with List[str]
+    # if query.ids:
+    #     comparisons.append(
+    #         Comparison(
+    #             comparator=Comparator.EQ,
+    #             attribute="metadata.id",
+    #             value=query.ids,
+    #         )
+    #     )
+    if query.process_id:
+        comparisons.append(
+            Comparison(
+                comparator=Comparator.EQ,
+                attribute="process_id",
+                value=query.process_id,
+            )
+        )
+    if query.gdpr_id:
+        comparisons.append(
+            Comparison(
+                comparator=Comparator.EQ,
+                attribute="gdpr_id",
+                value=query.gdpr_id,
+            )
+        )
+    if query.type:
+        comparisons.append(
+            Comparison(
+                comparator=Comparator.EQ,
+                attribute="type",
+                value=query.type,
+            )
+        )
+    return comparisons
+
+
 @logger.catch(reraise=True)
-async def get_embeddings(
-    ids: str,
+async def search_embeddings(
+    ids: Optional[str] = None,
     process_id: Optional[str] = None,
+    gdpr_id: Optional[str] = None,
+    type: Optional[str] = None,
     limit: Optional[int] = None,
     offset: Optional[int] = None,
     # include: Include = ["metadatas", "documents"],
@@ -145,30 +199,34 @@ async def get_embeddings(
         GetResult: A GetResult object containing the results.
     """ """"""
     try:
-        # TODO: überarbeiten
-        # es = get_vectorstore(with_embedding=False)
-        # query = {"bool": {"filter": []}}
-        # if ids:
-        #     query["bool"]["filter"].append({"terms": {"_id": ids}})
-        # if process_id:
-        #     query["bool"]["filter"].append(
-        #         {"match": {"metadata.process_id": process_id}}
-        #     )
-        # embed = es.search(
-        #     index=settings.AI_VECTORSTORE_INDEX,
-        #     query=query,
-        #     from_=offset,
-        #     size=limit,
-        #     search_type="similarity",
-        #     # source_excludes=source_excludes,
-        # )
-        id_list = [id for id in ids.split(",")]
-        if not id_list:
-            raise HTTPException(status_code=400, detail="No ids given")
+        search_query = Search(
+            ids=[id for id in ids.split(",")] if ids else None,
+            process_id=process_id,
+            gdpr_id=gdpr_id,
+            type=type,
+        )
+        comparisons = construct_comparisons(search_query)
+        _filter = Operation(operator=Operator.AND, arguments=comparisons)
+        query = ElasticsearchTranslator().visit_operation(_filter)
+
+        if search_query.ids:
+            query["bool"]["must"].append({"terms": {"_id": search_query.ids}})
+
+        logger.debug(f"Query: {query}")
+
+        # id_list = [id for id in ids.split(",")]
+        # if not id_list:
+        #     raise HTTPException(status_code=400, detail="No ids given")
 
         es = Elasticsearch(hosts=[settings.es_url])
-        query = {"terms": {"metadata.process_id.keyword": id_list}}
-        results = es.search(index=settings.AI_VECTORSTORE_INDEX, query=query)
+        # query = {"terms": {"metadata.process_id.keyword": id_list}}
+        results = es.search(
+            index=settings.AI_VECTORSTORE_INDEX,
+            query=query,
+            from_=offset,
+            size=limit,
+            _source={"excludes": ["vector"]},
+        )
 
         return results["hits"]["hits"]
     except Exception as e:
@@ -342,7 +400,8 @@ async def delete_embeddings(
             filter.append({"terms": {"_id": ids}})
         if where:
             filter.append(where)
-        # TODO: delete_by_query gibt es nicht mehr
+        es = Elasticsearch(hosts=[settings.es_url])
+
         response = es.delete_by_query(index=settings.AI_VECTORSTORE_INDEX, body=body)
         return {"deleted": response["deleted"]}
     except Exception as e:

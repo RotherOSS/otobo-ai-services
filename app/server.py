@@ -1,10 +1,11 @@
 import os
 from contextlib import asynccontextmanager
-from typing import Any, Dict, List, NotRequired, Optional, TypedDict
+from typing import Any, Dict, List, NotRequired, Optional, Sequence, TypedDict
 
-from fastapi import Body, Depends, FastAPI, HTTPException
+from fastapi import Body, Depends, FastAPI
 from fastapi.responses import RedirectResponse
 from langchain_core.documents import Document
+from langchain_core.messages import BaseMessage
 from langchain_core.runnables.config import RunnableConfig
 from langserve import add_routes
 from loguru import logger
@@ -14,16 +15,16 @@ from mylibs.auth.auth import get_api_key
 from mylibs.classes.AppSettings import AppSettings
 from mylibs.embedding.embedding import (
     UploadTicket,
+    aquery_embeddings,
     delete_embedding,
     delete_embeddings,
     get_embedding,
-    get_embeddings,
     get_heartbeat,
     put_embeddings,
-    aquery_embeddings,
+    search_embeddings,
 )
 from mylibs.rag.graph import graph as rag_graph
-from mylibs.rag_compression.chain import chain as rag_compression_chain
+from mylibs.rag_compression.graph import graph as rag_compression_graph
 from mylibs.rag_task.graph import graph as rag_task_graph
 
 settings = AppSettings()
@@ -42,6 +43,10 @@ async def lifespan(app: FastAPI):
         rotation="1 MB",
     )
     logger.success(f"Starting server with loglevel: {settings.LOG_LEVEL}")
+    if os.getenv("RAG_FILTER", "") != "":
+        logger.warning(
+            f"RAG_FILTER is set (value: {os.getenv('RAG_FILTER', '')}). Only datasets with this type in metadata will be used. All other datasets will be ignored!"
+        )
 
     ### after the application has finished ###
     yield
@@ -62,7 +67,6 @@ if settings.LANGFUSE_SECRET_KEY:
 
     langfuse_handler = CallbackHandler()
     try:
-        # Todo: This method is blocking. It is discouraged to use it in production code.
         langfuse_handler.auth_check()
         logger.success("Verbindung mit Langfuse hergestellt.")
         config = RunnableConfig(callbacks=[langfuse_handler])
@@ -98,30 +102,17 @@ class Question(BaseModel):
     question: str
 
 
-# @app.post(
-#     "/ai/tas/create-answer",
-#     name="Invoke LLM",
-#     description="Answers the submitted question using the stored data records.",
-#     dependencies=[Depends(get_api_key)],
-# )
-# async def rag(body: Question):
-#     try:
-#         return await rag_chain.ainvoke(body.question)
-#     except Exception as e:
-#         print(e)
-#         raise HTTPException(status_code=500, detail=str(e))
 class InputDict(TypedDict):
     question: str
     generation: NotRequired[str]
-    documents: NotRequired[List[Document]]
-    collection_name: NotRequired[str]
+    messages: NotRequired[Sequence[BaseMessage]]
 
 
 class OutputDict(TypedDict):
     question: str
-    generation: str
-    documents: List[Document]
-    collection_name: NotRequired[str]
+    generation: NotRequired[str]
+    messages: NotRequired[Sequence[BaseMessage]]
+    documents: NotRequired[List[Document]]
 
 
 add_routes(
@@ -133,39 +124,21 @@ add_routes(
     dependencies=[Depends(get_api_key)],
 )
 
-
-@app.post(
-    "/ai/tas/compression",
-    name="Contextual compression",
-    description="Answers the submitted question using the stored data records and contextual compression",
+add_routes(
+    app,
+    rag_compression_graph.with_config(config),
+    input_type=InputDict,
+    # output_type=OutputDict,
+    path="/ai/tas/compression",
     dependencies=[Depends(get_api_key)],
 )
-async def rag(body: Question):
-    try:
-        response = await rag_compression_chain.ainvoke(body.question)
-        return response
-    except Exception as e:
-        print(e)
-        raise HTTPException(status_code=500, detail=str(e))
 
-
-# @app.post(
-#     "/ai/tas/task",
-#     name="Task compression",
-#     description="Answers the submitted question using the complete task.",
-#     dependencies=[Depends(get_api_key)],
-# )
-# async def rag(body: Question):
-#     try:
-#         response = await rag_task_chain.ainvoke(body.question)
-#         return response
-#     except Exception as e:
-#         print(e)
-#         raise HTTPException(status_code=500, detail=str(e))
 
 add_routes(
     app,
     rag_task_graph.with_config(config),
+    input_type=InputDict,
+    # output_type=OutputDict,
     path="/ai/tas/task",
     dependencies=[Depends(get_api_key)],
 )
@@ -182,15 +155,19 @@ add_routes(
     dependencies=[Depends(get_api_key)],
 )
 async def filter(
-    ids: Any | None = None,
-    process_id: Optional[str] | None = Body(default=None),
-    limit: Optional[int] | None = Body(default=None),
-    offset: Optional[int] | None = Body(default=None),
+    ids: Optional[str] = None,
+    process_id: Optional[str] = None,
+    gdpr_id: Optional[str] = None,
+    type: Optional[str] = None,
+    limit: Optional[int] = None,
+    offset: Optional[int] = None,
     # include: Include = ["metadatas", "documents"],
 ):
-    return await get_embeddings(
+    return await search_embeddings(
         ids=ids,
         process_id=process_id,
+        gdpr_id=gdpr_id,
+        type=type,
         limit=limit,
         offset=offset,
         # include=include,

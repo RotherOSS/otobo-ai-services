@@ -16,7 +16,6 @@ from typing_extensions import TypedDict
 from mylibs.classes.AppSettings import AppSettings
 from mylibs.core.chains import rag_chain
 from mylibs.embedding.embedding import get_embeddingsmodel, get_vectorstore
-from mylibs.rag_task.TaskRetriever import TaskRetriever
 
 settings = AppSettings()
 k_retriever = 10
@@ -78,7 +77,7 @@ def retrieve(state):
 
 
 @logger.catch(reraise=True)
-# @retry(stop=stop_after_attempt(3), wait=wait_fixed(5))
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(5))
 def compress(state):
     logger.info("---COMPRESS---")
     question = state["question"]
@@ -93,7 +92,6 @@ def compress(state):
 
     vectorstore = get_vectorstore()
     retriever = vectorstore.as_retriever(search_kwargs={"k": k_retriever})
-    task_retriever = TaskRetriever(vectorstore=retriever)
 
     splitter = CharacterTextSplitter(chunk_size=300, chunk_overlap=0, separator=". ")
     redundant_filter = EmbeddingsRedundantFilter(embeddings=get_embeddingsmodel())
@@ -106,7 +104,7 @@ def compress(state):
 
     compression_retriever = ContextualCompressionRetriever(
         base_compressor=pipeline_compressor,
-        base_retriever=task_retriever,
+        base_retriever=retriever,
     )
 
     docs = compression_retriever.invoke(question)
@@ -130,12 +128,24 @@ def generate(state):
     question = state["question"]
 
     generation = rag_chain.invoke({"context": message.content, "question": question})
+    # out_message = AIMessage(
+    #     name="generate",
+    #     content=generation,
+    # )
+
+    # return {"messages": [out_message], "generation": generation}
     return {"generation": generation}
 
 
 def generate_err_answer(state):
     logger.info("---GENERIERE ERR_ANTWORT---")
     generation = "Es konnte leider keine relevante Antwort gefunden werden."
+    # out_message = AIMessage(
+    #     name="generate_err_answer",
+    #     content=generation,
+    # )
+    # return {"messages": [out_message], "generation": generation}
+
     return {"generation": generation}
 
 

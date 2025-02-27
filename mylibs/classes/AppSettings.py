@@ -74,18 +74,19 @@ class AppSettings:
         self.LOG_FILE = os.getenv("LOG_FILE", "./data/log/apilog.log")
         self.LOG_LEVEL = os.getenv("LOG_LEVEL", "DEBUG")
 
-        # had bad results with BAAI/bge-base-en-v1.5
-        # WARNING: changing the model will change the vector dimension
-        # so you must rebuild the complete embedding
-        # self.embedding_model_name = "BAAI/bge-large-en-v1.5"
-
         self.embedding_chunk_size = 1100
         self.embedding_chunk_overlap = 100
         # TODO: not working yet
         self.rag_search_kwargs = (
             {
                 "k": int(os.getenv("RAG_K", "3")),
-                "filter": {"type": os.getenv("RAG_FILTER", "")},
+                "filter": {
+                    "bool": {
+                        "must": [
+                            {"term": {"metadata.type": os.getenv("RAG_FILTER", "")}}
+                        ]
+                    }
+                },
             }
             if os.getenv("RAG_FILTER", "") != ""
             else {"k": int(os.getenv("RAG_K", "3"))}
@@ -97,12 +98,6 @@ class AppSettings:
         """checks if all necesarry varables are set"""
         if os.getenv("AI_API_KEY") is None:
             raise ValueError("Enviroment variable 'AI_API_KEY' must be set.")
-
-        # if self.use_together:
-        #     if self.TOGETHERAI_API_KEY is None or self.TOGETHERAI_MODEL is None:
-        #         raise ValueError(
-        #             "If 'USE_TOGETHER' is true enviroment variable 'TOGETHERAI_API_KEY' and 'TOGETHERAI_MODEL' must be set."
-        #         )
 
     def getenv(self, key: str, default=None):
         return os.getenv(key, default)

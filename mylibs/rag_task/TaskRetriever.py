@@ -43,7 +43,11 @@ class TaskRetriever(BaseRetriever):
 
         es = Elasticsearch(hosts=[settings.es_url])
         query = {"terms": {"metadata.process_id.keyword": ids}}
-        results = es.search(index=settings.AI_VECTORSTORE_INDEX, query=query)
+        results = es.search(
+            index=settings.AI_VECTORSTORE_INDEX,
+            query=query,
+            _source={"excludes": ["vector"]},
+        )
 
         docs: List[Document] = []
         for result in results["hits"]["hits"]:  # type: ignore

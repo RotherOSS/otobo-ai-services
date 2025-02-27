@@ -40,7 +40,6 @@ def retrieve(state: GraphState):
     logger.debug(f"question: {question}")
     documents = retriever.invoke(
         question,
-        # config={"configurable": {"search_kwargs": {"k": 8}}}
     )
     return {"documents": documents}
 
@@ -55,10 +54,8 @@ def generate(state: GraphState):
     question = state["question"]
     documents = state["documents"]
 
-    # RAG generation
     generation = rag_chain.invoke({"context": documents, "question": question})
     return {
-        # "documents": documents,
         "generation": generation,
     }
 
