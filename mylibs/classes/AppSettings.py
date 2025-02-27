@@ -40,7 +40,7 @@ class AppSettings:
 
         self.LLM_OTOBO_API_KEY = os.getenv("LLM_OTOBO_API_KEY", None)
         self.LLM_OLLAMA_URL = os.getenv("LLM_OLLAMA_URL", "http://localhost:11434")
-        self.LLM_OLLAMA_MODEL = os.getenv("LLM_OLLAMA_MODEL", "llama2:13b-chat")
+        self.LLM_OLLAMA_MODEL = os.getenv("LLM_OLLAMA_MODEL", "llama3.2")
         self.LLM_OLLAMA_EMBEDDING_MODEL = os.getenv(
             "LLM_OLLAMA_EMBEDDING_MODEL", "bge-m3"
         )
