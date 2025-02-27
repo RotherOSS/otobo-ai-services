@@ -29,10 +29,6 @@ Die Dokumentation der API lässt sich nach Installation leicht aufrufen:
 1. Docker mit Chroma DB zur Speicherung des vektorisierten Inhalts
 1. LLM
 
-## Hinweis
-
-Im KI-Bereich sind nahezu alle Tools und Bibliotheken noch mit Versionen 0.x bezeichnet. Da es zum Zeitpunkt der Fertigstellung keine Alternativen gab, werden diese Bibliotheken hier verwendet. U.A. LangChain und ChromaDB.
-
 ## Installation
 
 ### Installation Datenbank
@@ -45,49 +41,6 @@ Um Elasticsearch in einem Docker zu laden verwenden Sie
 docker run -p 9200:9200 -e "discovery.type=single-node" -e "xpack.security.enabled=false"
 -e "xpack.security.http.ssl.enabled=false" --name es_812 -d docker.elastic.co/elasticsearch/elasticsearch:8.12.1
 ```
-
-#### Chroma Server
-
-Sie können einen Chroma-Server in einem Docker-Container betreiben.
-
-```bash
-docker pull chromadb/chroma
-```
-
-nur DB
-
-```bash
-docker run -p 8000:8000 chromadb/chroma
-```
-
-oder im Netzwerk mit `network alias` und `named volume`
-
-```bash
-docker run -p 8000:8000 --network otobo_tas --network-alias chromaserver -v chroma-data:/chroma/chroma --name chromaserver chromadb/chroma
-```
-
-oder mit API-Key Auth und Netzwerk ("test-token" durch entsprechenden Wert ersetzen)
-
-```bash
-docker run -p 8000:8000
---network otobo_tas
---network-alias chromaserver
--v chroma-data:/chroma/chroma
---env=CHROMA_SERVER_AUTH_CREDENTIALS=test-token
---env=CHROMA_SERVER_AUTH_CREDENTIALS_PROVIDER=chromadb.auth.token.TokenConfigServerAuthCredentialsProvider
---env=CHROMA_SERVER_AUTH_PROVIDER=chromadb.auth.token.TokenAuthServerProvider
-chromadb/chroma
-```
-
-Sie können das Docker-Image auch selbst aus dem Dockerfile im Chroma GitHub Repository erstellen
-
-```bash
-git clone git@github.com:chroma-core/chroma.git
-cd chroma
-docker-compose up -d --build
-```
-
-Eine Anleitung finden Sie [hier](https://docs.trychroma.com/deployment).
 
 ### Installation API
 
@@ -120,8 +73,6 @@ Ein laufender Container kann nachträglich zum Netzwerk hinzugefügt werden
 docker network connect otobo_tas <container-id (Anfang...)>
 ```
 
-#
-
 So finden Sie die Ip-Adresse, die der Container im virtuellen Netzwerk nutzt.
 
 ```bash
@@ -129,8 +80,6 @@ docker inspect <container-id (Anfang...)>
 ```
 
 Unten im Output befindet sich die Ip-Adresse unter `Networks->otobo_tas->IPAdress`.
-
-#
 
 Das Docker-Image wird im Verzeichnis, in dem sich die Datei `Dockerimage` mit diesem Befehl erzeugt (Dauer ca. 5 Minuten):
 
@@ -189,7 +138,7 @@ Ist der Docker des API-Servers gestartet, können Sie auf den\
 [Swagger](http://127.0.0.1:8000/docs#/) (<http://127.0.0.1:8000/docs#/)\>
 falls unter dieser Adresse und Port gestartet - zugreifen.
 
-# Entwicklung
+## Entwicklung
 
 1. Download von git
 1. Virtuelle Umgebung einrichten
@@ -197,7 +146,7 @@ falls unter dieser Adresse und Port gestartet - zugreifen.
 1. Umgebungsvariablen setzen
 1. Server starten
 
-### Virtuelle Umgebung einrichten in VS Code
+## Virtuelle Umgebung einrichten in VS Code
 
 \<strg> + \<shift> + p: Python:Create vitual enviroment wählen, dann venv, dann Interpreter, dann pyproject.toml eingeben. Installation aller Pakete startet parallel im Hintergrund. Abwarten, bis alles installiert ist, dann erst starten.
 
@@ -267,9 +216,33 @@ Mega-fieser Bug in Langchain. Ums kurz zu fassen. In den Tiefen der Runnables ü
 Das waren ein paar stressige Tage...
 
 Grund: In ```.../lib/python3.12/site-packages/langgraph/utils/config.py```  bzw. im Container
-```/usr/local/lib/python3.12/site-packages/langgraph/utils/config.py``` überschreibt ensure_config die Callbackhandler
+```/usr/local/lib/python3.12/site-packages/langgraph/utils/config.py``` überschreibt ensure_config die Callbackhandler.
 
 ### Workaround
 
 Im Ordner bugfix liegt eine modifizierte config.py. Diese muss in den Container kopiert werden NACHDEM poetry gelaufen ist:
 ```COPY ./bugfix/config.py /usr/local/lib/python3.12/site-packages/langgraph/utils/config.py```
+
+## Langfuse
+
+Langfuse klinkt sich in in den Workflow zum Erzeugen von Antworten mit KI ein und bereitet die Daten so auf, dass man Input und Output besser nachverfolgen kann.
+
+![Screenshot](/img/langfuse.png)
+
+### Installation Langfuse
+
+[Langfuse im Docker installieren](https://langfuse.com/self-hosting/docker)
+
+Dies installiert einen Docker-Stack inkl. Datenbank und Web-Frontend.
+
+### Erste Schritte
+
+Ist Langfuse installiert, richtet man über die Web-Oberfläche ein Projekt ein. Dort werden auch die nötigen Secret- und Public-Keys erzeugt.
+
+### Enviroment-Parameter
+
+In der otobo-api werden dann diese Keys in Enviroment-Variablen hinterlegt.
+
+LANGFUSE_SECRET_KEY=sk-...
+LANGFUSE_PUBLIC_KEY=pk-...
+LANGFUSE_HOST=http://(ip-Adresse/Servername):3000
