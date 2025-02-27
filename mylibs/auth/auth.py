@@ -12,7 +12,7 @@ api_key_header = APIKeyHeader(name="access_token", auto_error=False)
 
 
 async def get_api_key(api_key_header: str = Security(api_key_header)):
-    """checks wether the api key is correct
+    """checks whether the api key is correct
 
     Args:
         api_key_header (str, optional): _description_. Defaults to Security(api_key_header).
