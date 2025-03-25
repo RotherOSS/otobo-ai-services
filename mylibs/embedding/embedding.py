@@ -4,6 +4,7 @@ from elasticsearch import Elasticsearch
 from fastapi import HTTPException
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_elasticsearch import ElasticsearchStore
+from langchain_community.vectorstores import Chroma  # todo replace elasticsearch with something like this
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 from loguru import logger
 from pydantic import BaseModel
@@ -32,17 +33,13 @@ def get_embeddingsmodel():
 
 @logger.catch(reraise=True)
 def get_vectorstore(with_embedding: bool = True):
-    if with_embedding:
-        db_embedding = get_embeddingsmodel()
-        return ElasticsearchStore(
-            es_url=settings.es_url,
-            index_name=settings.AI_VECTORSTORE_INDEX,
-            embedding=db_embedding,
-        )
-    else:
-        return ElasticsearchStore(
-            es_url=settings.es_url, index_name=settings.AI_VECTORSTORE_INDEX
-        )
+    db_embedding = get_embeddingsmodel() if with_embedding else None
+
+    return Chroma(
+        collection_name=settings.AI_VECTORSTORE_INDEX,
+        embedding_function=db_embedding,
+        persist_directory=settings.CHROMA_PERSIST_DIRECTORY  # You can define this in your .env or settings
+    )
 
 
 @logger.catch(reraise=True)
@@ -306,27 +303,68 @@ async def aquery_embeddings(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# @logger.catch(reraise=True)
+# async def put_embeddings(tickets: List[UploadTicket]):
+#     """Puts the given list of data sets in Ticket format into the Vector DB
+#
+#     Splits the texts into chunks with chunk size Settings.embedding_chunk_size and overlap Settings.embedding_chunk_overlap
+#     Creates the embedding vector.
+#     Notice: maybe max 50 Tickets can be a good size, may take a few minutes
+#
+#     Args:
+#         tickets (List[Ticket]): list of ticktets to be embedded
+#
+#     Raises:
+#         HTTPException: 500
+#     Returns:
+#         List[str]: created ids
+#     """ """"""
+#     # Idea: add datetime
+#
+#     all_ids = []
+#     try:
+#         elasticdb: ElasticsearchStore = get_vectorstore()  # type: ignore
+#         for ticket in tickets:
+#             text_splitter = RecursiveCharacterTextSplitter(
+#                 chunk_size=settings.embedding_chunk_size,
+#                 chunk_overlap=settings.embedding_chunk_overlap,
+#             )
+#             all_splits = text_splitter.create_documents([ticket.document])
+#
+#             for i, doc in enumerate(all_splits):
+#                 doc.metadata = get_meta(ticket)
+#                 doc.metadata["chunk_id"] = i
+#                 doc.metadata["chunks"] = len(all_splits)
+#
+#             ids = await elasticdb.aadd_documents(all_splits)
+#
+#             all_ids = all_ids + ids
+#     except Exception as e:
+#         print(e)
+#         raise HTTPException(status_code=500, detail=str(e))
+#
+#     return all_ids
+
+
 @logger.catch(reraise=True)
 async def put_embeddings(tickets: List[UploadTicket]):
-    """Puts the given list of data sets in Ticket format into the Vector DB
+    """Inserts a list of datasets in Ticket format into the Vector DB.
 
-    Splits the texts into chunks with chunk size Settings.embedding_chunk_size and overlap Settings.embedding_chunk_overlap
-    Creates the embedding vector.
-    Notice: maybe max 50 Tickets can be a good size, may take a few minutes
+    Splits the texts into chunks with specified chunk size and overlap,
+    then creates embedding vectors.
 
     Args:
-        tickets (List[Ticket]): list of ticktets to be embedded
+        tickets (List[UploadTicket]): List of tickets to be embedded.
 
     Raises:
-        HTTPException: 500
-    Returns:
-        List[str]: created ids
-    """ """"""
-    # Idea: add datetime
+        HTTPException: 500 if an error occurs.
 
+    Returns:
+        List[str]: List of created IDs.
+    """
     all_ids = []
     try:
-        elasticdb: ElasticsearchStore = get_vectorstore()  # type: ignore
+        chroma_db: Chroma = get_vectorstore()
         for ticket in tickets:
             text_splitter = RecursiveCharacterTextSplitter(
                 chunk_size=settings.embedding_chunk_size,
@@ -339,11 +377,10 @@ async def put_embeddings(tickets: List[UploadTicket]):
                 doc.metadata["chunk_id"] = i
                 doc.metadata["chunks"] = len(all_splits)
 
-            ids = await elasticdb.aadd_documents(all_splits)
-
-            all_ids = all_ids + ids
+            ids = await chroma_db.aadd_documents(all_splits)
+            all_ids.extend(ids)
     except Exception as e:
-        print(e)
+        logger.error(f"Error inserting embeddings: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
     return all_ids

@@ -21,6 +21,8 @@ langfuse = "^2.59.3"
 langchain-elasticsearch = "^0.3.2"
 langgraph = "^0.2.74"
 elasticsearch = "^8.17.1"
+numpy = "<2.0"
+chromadb = "^0.4.24"   # or latest available version
 
 
 [tool.poetry.group.dev.dependencies]

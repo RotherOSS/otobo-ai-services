@@ -2,17 +2,19 @@
 
 FROM python:3.12-slim
 
-# Install some required and optional Debian packages.
-RUN apt-get update\
-    && apt-get -y --no-install-recommends install\
-    "less"\
-    "nano"\
-    "rsync"\
-    "telnet"\
-    "tree"\
-    "screen"\
-    "vim"\
-    "curl"\
+# Install required build tools and optional Debian packages
+RUN apt-get update \
+    && apt-get -y --no-install-recommends install \
+    build-essential \
+    g++ \
+    less \
+    nano \
+    rsync \
+    telnet \
+    tree \
+    screen \
+    vim \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 RUN pip install poetry==1.8.4
@@ -33,4 +35,4 @@ COPY ./bugfix/config.py /usr/local/lib/python3.12/site-packages/langgraph/utils/
 
 # EXPOSE 8080
 
-# CMD exec uvicorn app.server:app --host 0.0.0.0 --port 8080 --loop asyncio
+CMD exec uvicorn app.server:app --host 0.0.0.0 --port 8080 --loop asyncio

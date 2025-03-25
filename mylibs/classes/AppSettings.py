@@ -32,6 +32,8 @@ class AppSettings:
         self.AI_API_SERVER_HOST = os.getenv("AI_API_SERVER_HOST", "0.0.0.0")
         self.AI_API_SERVER_PORT = int(os.getenv("AI_API_SERVER_PORT", "8080"))
 
+        self.CHROMA_PERSIST_DIRECTORY = os.getenv("CHROMA_PERSIST_DIRECTORY", "/chroma")
+
         self.AI_VECTORDB_HOST = os.getenv("AI_VECTORDB_HOST", "http://localhost")
         self.AI_VECTORDB_PORT = os.getenv("AI_VECTORDB_PORT", "9200")
         self.AI_VECTORDB_AUTH_TOKEN = os.getenv("AI_VECTORDB_AUTH_TOKEN", None)

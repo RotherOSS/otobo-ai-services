@@ -1,0 +1,25 @@
+name: otobo-ai
+
+
+services:
+  # API
+
+  api:
+    build: .
+    env_file:
+      - .env
+
+    ports:
+      - 8080:8080
+    restart: on-failure:5
+
+  chromadb:
+    image: chromadb/chroma
+    ports:
+      - "8000:8000"
+    volumes:
+      - chromadb-data:/chroma
+    restart: unless-stopped
+
+volumes:
+  chromadb-data:
