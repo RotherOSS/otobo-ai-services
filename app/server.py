@@ -21,11 +21,8 @@ from mylibs.embedding.embedding import (
     get_embedding,
     get_heartbeat,
     put_embeddings,
-    search_embeddings,
 )
 from mylibs.rag.graph import graph as rag_graph
-from mylibs.rag_compression.graph import graph as rag_compression_graph
-from mylibs.rag_task.graph import graph as rag_task_graph
 
 settings = AppSettings()
 
@@ -98,10 +95,6 @@ async def heartbeat():
 #####################
 ### secure routes ###
 #####################
-class Question(BaseModel):
-    question: str
-
-
 class InputDict(TypedDict):
     question: str
     generation: NotRequired[str]
@@ -123,55 +116,6 @@ add_routes(
     path="/ai/tas/create-answer",
     dependencies=[Depends(get_api_key)],
 )
-
-add_routes(
-    app,
-    rag_compression_graph.with_config(config),
-    input_type=InputDict,
-    # output_type=OutputDict,
-    path="/ai/tas/compression",
-    dependencies=[Depends(get_api_key)],
-)
-
-
-add_routes(
-    app,
-    rag_task_graph.with_config(config),
-    input_type=InputDict,
-    # output_type=OutputDict,
-    path="/ai/tas/task",
-    dependencies=[Depends(get_api_key)],
-)
-
-
-@app.post(
-    "/ai/embedding/filter/",
-    name="Invoke many",
-    description="""Get embedded data by search.\n
-    At least one of the optional parameters 'ids' and 'process_id' must be specified.\n
-    Include - ChromaDB: A list of what to include in the results. Can contain "embeddings", "metadatas", "documents", "distances".\n
-    Include - Elasticserach: use "embeddings" to include vectors in result.
-    """,
-    dependencies=[Depends(get_api_key)],
-)
-async def filter(
-    ids: Optional[str] = None,
-    process_id: Optional[str] = None,
-    gdpr_id: Optional[str] = None,
-    type: Optional[str] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-    # include: Include = ["metadatas", "documents"],
-):
-    return await search_embeddings(
-        ids=ids,
-        process_id=process_id,
-        gdpr_id=gdpr_id,
-        type=type,
-        limit=limit,
-        offset=offset,
-        # include=include,
-    )
 
 
 @app.post(

@@ -1,10 +1,9 @@
 from typing import Any, Dict, List, Optional
 
-from elasticsearch import Elasticsearch
 from fastapi import HTTPException
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_elasticsearch import ElasticsearchStore
-from langchain_community.vectorstores import Chroma  # todo replace elasticsearch with something like this
+from langchain_community.vectorstores import Chroma
+from chromadb import PersistentClient
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 from loguru import logger
 from pydantic import BaseModel
@@ -19,7 +18,6 @@ from langchain.chains.query_constructor.ir import (
     Operation,
     Operator,
 )
-from langchain_community.query_constructors.elasticsearch import ElasticsearchTranslator
 
 settings = AppSettings()
 
@@ -102,7 +100,7 @@ async def get_heartbeat():
 
 @logger.catch(reraise=True)
 async def get_embedding(id: str):
-    """returns the embedding with the given id.
+    """Returns the embedding with the given id.
 
     Args:
         id (str): id of embedding
@@ -111,11 +109,12 @@ async def get_embedding(id: str):
         HTTPException: 500
 
     Returns:
-        GetResult: A GetResult object containing the results.
-    """ """"""
+        dict: The retrieved embedding metadata and vector.
+    """
     try:
-        es = Elasticsearch(hosts=[settings.es_url])
-        embedding = es.get(index=settings.AI_VECTORSTORE_INDEX, id=id)
+        client = PersistentClient(path=settings.CHROMA_PERSIST_DIRECTORY)
+        collection = client.get_collection(settings.AI_VECTORSTORE_INDEX)
+        embedding = collection.get(ids=[id])
         return embedding
     except Exception as e:
         print(e)
@@ -168,70 +167,6 @@ def construct_comparisons(query: Search):
 
 
 @logger.catch(reraise=True)
-async def search_embeddings(
-    ids: Optional[str] = None,
-    process_id: Optional[str] = None,
-    gdpr_id: Optional[str] = None,
-    type: Optional[str] = None,
-    limit: Optional[int] = None,
-    offset: Optional[int] = None,
-    # include: Include = ["metadatas", "documents"],
-):
-    """returns the embeddings with the given search parameter.
-
-    At least one of the optional parameters 'ids' and 'process_id' must be specified.
-
-
-    Args:
-        ids (Optional[OneOrMany[ID]], optional): list of ids. Defaults to None.
-        process_id (Optional[str], optional): list of process ids. Defaults to None.
-        limit (Optional[int], optional): max no of results. Defaults to None.
-        offset (Optional[int], optional): offset. Defaults to None.
-        include (Include, optional): part of result. Defaults to ["metadatas", "documents"].
-
-    Raises:
-        HTTPException: 500
-
-    Returns:
-        GetResult: A GetResult object containing the results.
-    """ """"""
-    try:
-        search_query = Search(
-            ids=[id for id in ids.split(",")] if ids else None,
-            process_id=process_id,
-            gdpr_id=gdpr_id,
-            type=type,
-        )
-        comparisons = construct_comparisons(search_query)
-        _filter = Operation(operator=Operator.AND, arguments=comparisons)
-        query = ElasticsearchTranslator().visit_operation(_filter)
-
-        if search_query.ids:
-            query["bool"]["must"].append({"terms": {"_id": search_query.ids}})
-
-        logger.debug(f"Query: {query}")
-
-        # id_list = [id for id in ids.split(",")]
-        # if not id_list:
-        #     raise HTTPException(status_code=400, detail="No ids given")
-
-        es = Elasticsearch(hosts=[settings.es_url])
-        # query = {"terms": {"metadata.process_id.keyword": id_list}}
-        results = es.search(
-            index=settings.AI_VECTORSTORE_INDEX,
-            query=query,
-            from_=offset,
-            size=limit,
-            _source={"excludes": ["vector"]},
-        )
-
-        return results["hits"]["hits"]
-    except Exception as e:
-        # print(e)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@logger.catch(reraise=True)
 def query_embeddings(
     query_texts: Optional[List[str]] = None,
     where_filter: Optional[List[Dict]] = None,
@@ -257,7 +192,6 @@ def query_embeddings(
     """
     try:
         es = get_vectorstore()
-        # include parameter not supported with Elasticsearch
         where_list = where_filter if where_filter and where_filter[0] else None
         result = es.similarity_search(query=query_texts[0] if query_texts else "", filter=where_list, k=n_results)  # type: ignore
         return result
@@ -293,7 +227,6 @@ async def aquery_embeddings(
     """
     try:
         es = get_vectorstore()
-        # include parameter not supported with Elasticsearch
         where_list = where_filter if where_filter and where_filter[0] else None
         result = await es.asimilarity_search(query=query_texts[0] if query_texts else "", filter=where_list, k=n_results)  # type: ignore
         return result
@@ -301,49 +234,6 @@ async def aquery_embeddings(
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
-
-
-# @logger.catch(reraise=True)
-# async def put_embeddings(tickets: List[UploadTicket]):
-#     """Puts the given list of data sets in Ticket format into the Vector DB
-#
-#     Splits the texts into chunks with chunk size Settings.embedding_chunk_size and overlap Settings.embedding_chunk_overlap
-#     Creates the embedding vector.
-#     Notice: maybe max 50 Tickets can be a good size, may take a few minutes
-#
-#     Args:
-#         tickets (List[Ticket]): list of ticktets to be embedded
-#
-#     Raises:
-#         HTTPException: 500
-#     Returns:
-#         List[str]: created ids
-#     """ """"""
-#     # Idea: add datetime
-#
-#     all_ids = []
-#     try:
-#         elasticdb: ElasticsearchStore = get_vectorstore()  # type: ignore
-#         for ticket in tickets:
-#             text_splitter = RecursiveCharacterTextSplitter(
-#                 chunk_size=settings.embedding_chunk_size,
-#                 chunk_overlap=settings.embedding_chunk_overlap,
-#             )
-#             all_splits = text_splitter.create_documents([ticket.document])
-#
-#             for i, doc in enumerate(all_splits):
-#                 doc.metadata = get_meta(ticket)
-#                 doc.metadata["chunk_id"] = i
-#                 doc.metadata["chunks"] = len(all_splits)
-#
-#             ids = await elasticdb.aadd_documents(all_splits)
-#
-#             all_ids = all_ids + ids
-#     except Exception as e:
-#         print(e)
-#         raise HTTPException(status_code=500, detail=str(e))
-#
-#     return all_ids
 
 
 @logger.catch(reraise=True)
@@ -388,10 +278,10 @@ async def put_embeddings(tickets: List[UploadTicket]):
 
 @logger.catch(reraise=True)
 async def delete_embedding(id: str):
-    """delete a embedding by id
+    """Delete an embedding by id.
 
     Args:
-        id (str): id of dataset to be deleted
+        id (str): id of embedding to be deleted
 
     Raises:
         HTTPException: 500
@@ -400,9 +290,10 @@ async def delete_embedding(id: str):
         str: deleted id
     """
     try:
-        es = get_vectorstore(with_embedding=False)
-        response = es.delete(index=settings.AI_VECTORSTORE_INDEX, id=id)
-        return response.body["_id"]
+        client = PersistentClient(path=settings.CHROMA_PERSIST_DIRECTORY)
+        collection = client.get_collection(settings.AI_VECTORSTORE_INDEX)
+        collection.delete(ids=[id])
+        return id
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
@@ -410,37 +301,36 @@ async def delete_embedding(id: str):
 
 @logger.catch(reraise=True)
 async def delete_embeddings(
-    ids: Any | None = None,
-    where: Optional[Dict] = None,
+        ids: Any | None = None,
+        where: Optional[Dict] = None,
 ):
-    """deletes the embeddings with the given parameters.
+    """Deletes the embeddings with the given parameters.
 
     You have to specify at least one parameter.
 
-
     Args:
-        ids (Optional[IDs], optional): list of ids. Defaults to None.
-        where (Optional[Dict], optional): where condition. Defaults to None.
+        ids (Optional[Any], optional): list of ids. Defaults to None.
+        where (Optional[Dict], optional): metadata filter condition. Defaults to None.
 
     Raises:
         HTTPException: 500
 
     Returns:
-        Dict: ids when Chroma, deleted when Elasticsearch
-    """ """"""
+        Dict: ids of deleted embeddings.
+    """
+    if not ids and not where:
+        raise HTTPException(status_code=400, detail="Either ids or where condition must be provided")
+
     try:
-        es = get_vectorstore(with_embedding=False)
+        client = PersistentClient(path=settings.CHROMA_PERSIST_DIRECTORY)
+        collection = client.get_collection(settings.AI_VECTORSTORE_INDEX)
 
-        body = {"query": {"bool": {"filter": []}}}
-        filter = body["query"]["bool"]["filter"]
         if ids:
-            filter.append({"terms": {"_id": ids}})
+            collection.delete(ids=ids)
         if where:
-            filter.append(where)
-        es = Elasticsearch(hosts=[settings.es_url])
+            collection.delete(where=where)
 
-        response = es.delete_by_query(index=settings.AI_VECTORSTORE_INDEX, body=body)
-        return {"deleted": response["deleted"]}
+        return {"deleted_ids": ids if ids else "Deleted by filter"}
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
