@@ -6,17 +6,9 @@ from langchain_community.vectorstores import Chroma
 from chromadb import PersistentClient
 from langchain_ollama import ChatOllama, OllamaEmbeddings
 from loguru import logger
-from pydantic import BaseModel
 
 from src.settings import AppSettings
 from src.data_models.ticket import Ticket, UploadTicket
-
-from langchain.chains.query_constructor.ir import (
-    Comparator,
-    Comparison,
-    Operation,
-    Operator,
-)
 
 settings = AppSettings()
 
@@ -145,9 +137,9 @@ def query_embeddings(
         QueryResult: _description_
     """
     try:
-        es = get_vectorstore()
+        vector_store = get_vectorstore()
         where_list = where_filter if where_filter and where_filter[0] else None
-        result = es.similarity_search(query=query_texts[0] if query_texts else "", filter=where_list, k=n_results)  # type: ignore
+        result = vector_store.similarity_search(query=query_texts[0] if query_texts else "", filter=where_list, k=n_results)  # type: ignore
         return result
 
     except Exception as e:
@@ -160,7 +152,6 @@ async def aquery_embeddings(
     query_texts: Optional[List[str]] = None,
     where_filter: Optional[List[Dict]] = None,
     n_results: int = 10,
-    # include: Include = ["metadatas", "documents"],
 ):
     """returns embeddings queried by the given query text(s).
 
@@ -180,9 +171,9 @@ async def aquery_embeddings(
         QueryResult: _description_
     """
     try:
-        es = get_vectorstore()
+        vector_store = get_vectorstore()
         where_list = where_filter if where_filter and where_filter[0] else None
-        result = await es.asimilarity_search(query=query_texts[0] if query_texts else "", filter=where_list, k=n_results)  # type: ignore
+        result = await vector_store.asimilarity_search(query=query_texts[0] if query_texts else "", filter=where_list, k=n_results)  # type: ignore
         return result
 
     except Exception as e:
@@ -208,7 +199,7 @@ async def put_embeddings(tickets: List[UploadTicket]):
     """
     all_ids = []
     try:
-        chroma_db: Chroma = get_vectorstore()
+        vector_store = get_vectorstore()
         for ticket in tickets:
             text_splitter = RecursiveCharacterTextSplitter(
                 chunk_size=settings.embedding_chunk_size,
@@ -221,7 +212,7 @@ async def put_embeddings(tickets: List[UploadTicket]):
                 doc.metadata["chunk_id"] = i
                 doc.metadata["chunks"] = len(all_splits)
 
-            ids = await chroma_db.aadd_documents(all_splits)
+            ids = await vector_store.aadd_documents(all_splits)
             all_ids.extend(ids)
     except Exception as e:
         logger.error(f"Error inserting embeddings: {e}")

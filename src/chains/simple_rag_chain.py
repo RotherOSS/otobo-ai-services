@@ -1,7 +1,7 @@
 from langchain.prompts import PromptTemplate
 from langchain.schema import Document
 from langchain.schema.runnable import RunnableLambda, RunnableParallel
-from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
+from langchain_core.output_parsers import StrOutputParser
 from loguru import logger
 from src.settings import AppSettings
 from src.embedding import get_model
