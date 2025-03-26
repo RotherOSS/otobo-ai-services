@@ -4,7 +4,8 @@ from langchain.schema.runnable import RunnableLambda, RunnableParallel
 from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
 from loguru import logger
 from src.settings import AppSettings
-from src.embedding.embedding import get_model
+from src.embedding import get_model
+from pathlib import Path
 
 settings = AppSettings()
 llm = get_model()
@@ -34,16 +35,11 @@ def get_question(json_in):
     return json_in["question"]
 
 
+prompt_path = Path(__file__).parent.parent / "prompts" / "simple_rag_prompt.txt"
+prompt_template = prompt_path.read_text(encoding="utf-8")
+
 rag_chain_prompt = PromptTemplate(
-    template="""<|begin_of_text|><|start_header_id|>system<|end_header_id|> Du bist ein Assistent für Frage-Antwort Aufgaben.
-    Beantworte die folgende FRAGE ausschließlich mit dem unten aufgeführten Kontext. Wenn du die Antwort nicht weißt, antworte mit 'Das weiß ich leider nicht'.
-    Antworte immer auf Deutsch. Antworte ausführlich und sehr gewissenhaft. <|eot_id|><|start_header_id|>user<|end_header_id|>
-    \n ------- \n
-    FRAGE: {question}
-    \n ------- \n
-    Kontext: {context}
-    \n ------- \n
-    Antwort: <|eot_id|><|start_header_id|>assistant<|end_header_id|>""",
+    template=prompt_template,
     input_variables=["question", "context"],
 )
 

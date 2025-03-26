@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from src.auth import get_api_key
 from src.settings import AppSettings
-from src.embedding.embedding import (
+from src.embedding import (
     UploadTicket,
     aquery_embeddings,
     delete_embedding,
@@ -22,7 +22,7 @@ from src.embedding.embedding import (
     get_heartbeat,
     put_embeddings,
 )
-from src.rag.graph import graph as rag_graph
+from src.graphs.simple_rag_graph import graph as rag_graph
 
 settings = AppSettings()
 

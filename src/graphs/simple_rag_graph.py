@@ -7,13 +7,12 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 from typing_extensions import TypedDict
 
 from src.settings import AppSettings
-from src.core.chains import rag_chain
-from src.embedding.embedding import get_vectorstore
+from src.chains.simple_rag_chain import rag_chain
+from src.embedding import get_vectorstore
 
 settings = AppSettings()
 
 
-### State
 class GraphState(TypedDict):
     """
     Status des Graphen.
@@ -70,5 +69,3 @@ workflow.add_edge("retrieve", "generate")
 workflow.add_edge("generate", END)
 
 graph = workflow.compile()
-"""this is the normal RAG graph
-"""
