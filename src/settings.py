@@ -10,7 +10,7 @@ class AppSettings:
     ### Example
 
     ```python
-    from mylibs.classes.AppSettings import AppSettings
+    from src.data_models.AppSettings import AppSettings
 
     settings = AppSettings()
 

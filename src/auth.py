@@ -1,6 +1,4 @@
-# auth.py
-
-from mylibs.classes.AppSettings import AppSettings
+from src.settings import AppSettings
 
 from fastapi.security.api_key import APIKeyHeader
 from fastapi import Security, HTTPException

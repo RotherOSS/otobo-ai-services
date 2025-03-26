@@ -8,9 +8,8 @@ from langchain_ollama import ChatOllama, OllamaEmbeddings
 from loguru import logger
 from pydantic import BaseModel
 
-from mylibs.classes.AppSettings import AppSettings
-from mylibs.classes.Ticket import Ticket, UploadTicket
-from typing import Optional
+from src.settings import AppSettings
+from src.data_models.ticket import Ticket, UploadTicket
 
 from langchain.chains.query_constructor.ir import (
     Comparator,
@@ -119,51 +118,6 @@ async def get_embedding(id: str):
     except Exception as e:
         print(e)
         raise HTTPException(status_code=500, detail=str(e))
-
-
-class Search(BaseModel):
-    ids: Optional[List[str]] = None
-    process_id: Optional[str] = None
-    gdpr_id: Optional[str] = None
-    type: Optional[str] = None
-
-
-def construct_comparisons(query: Search):
-    comparisons = []
-    # actually not working with List[str]
-    # if query.ids:
-    #     comparisons.append(
-    #         Comparison(
-    #             comparator=Comparator.EQ,
-    #             attribute="metadata.id",
-    #             value=query.ids,
-    #         )
-    #     )
-    if query.process_id:
-        comparisons.append(
-            Comparison(
-                comparator=Comparator.EQ,
-                attribute="process_id",
-                value=query.process_id,
-            )
-        )
-    if query.gdpr_id:
-        comparisons.append(
-            Comparison(
-                comparator=Comparator.EQ,
-                attribute="gdpr_id",
-                value=query.gdpr_id,
-            )
-        )
-    if query.type:
-        comparisons.append(
-            Comparison(
-                comparator=Comparator.EQ,
-                attribute="type",
-                value=query.type,
-            )
-        )
-    return comparisons
 
 
 @logger.catch(reraise=True)

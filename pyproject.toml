@@ -5,7 +5,7 @@ description = ""
 authors = ["Horst Amper <horst.amper@ki-werkstatt.net>"]
 readme = "README.md"
 packages = [
-    { include = "app" },
+    { include = "src" },
 ]
 
 [tool.poetry.dependencies]

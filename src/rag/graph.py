@@ -6,9 +6,9 @@ from loguru import logger
 from tenacity import retry, stop_after_attempt, wait_fixed
 from typing_extensions import TypedDict
 
-from mylibs.classes.AppSettings import AppSettings
-from mylibs.core.chains import rag_chain
-from mylibs.embedding.embedding import get_vectorstore
+from src.settings import AppSettings
+from src.core.chains import rag_chain
+from src.embedding.embedding import get_vectorstore
 
 settings = AppSettings()
 

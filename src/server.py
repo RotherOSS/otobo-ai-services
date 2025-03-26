@@ -11,9 +11,9 @@ from langserve import add_routes
 from loguru import logger
 from pydantic import BaseModel
 
-from mylibs.auth.auth import get_api_key
-from mylibs.classes.AppSettings import AppSettings
-from mylibs.embedding.embedding import (
+from src.auth import get_api_key
+from src.settings import AppSettings
+from src.embedding.embedding import (
     UploadTicket,
     aquery_embeddings,
     delete_embedding,
@@ -22,7 +22,7 @@ from mylibs.embedding.embedding import (
     get_heartbeat,
     put_embeddings,
 )
-from mylibs.rag.graph import graph as rag_graph
+from src.rag.graph import graph as rag_graph
 
 settings = AppSettings()
 

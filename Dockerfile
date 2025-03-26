@@ -24,8 +24,7 @@ RUN poetry config virtualenvs.create false
 WORKDIR /code
 
 COPY ./pyproject.toml ./README.md ./poetry.lock* ./
-COPY ./mylibs ./mylibs
-COPY ./app ./app
+COPY ./src ./src
 
 RUN poetry lock --no-update
 RUN poetry install --no-interaction --no-ansi
@@ -35,4 +34,4 @@ COPY ./bugfix/config.py /usr/local/lib/python3.12/site-packages/langgraph/utils/
 
 # EXPOSE 8080
 
-CMD exec uvicorn app.server:app --host 0.0.0.0 --port 8080 --loop asyncio
+CMD exec uvicorn src.server:app --host 0.0.0.0 --port 8080 --loop asyncio
