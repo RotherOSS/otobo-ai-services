@@ -4,7 +4,7 @@ from langchain.schema.runnable import RunnableLambda, RunnableParallel
 from langchain_core.output_parsers import StrOutputParser
 from loguru import logger
 from src.settings import AppSettings
-from src.embedding import get_model
+from src.llm_embedding_utils import get_model
 from pathlib import Path
 
 settings = AppSettings()

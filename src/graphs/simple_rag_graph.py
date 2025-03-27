@@ -8,16 +8,12 @@ from typing_extensions import TypedDict
 
 from src.settings import AppSettings
 from src.chains.simple_rag_chain import rag_chain
-from src.embedding import get_vectorstore
+from src.llm_embedding_utils import get_vectorstore
 
 settings = AppSettings()
 
 
 class GraphState(TypedDict):
-    """
-    Status des Graphen.
-    """
-
     question: str
     generation: str | None
     documents: List[Document] | None

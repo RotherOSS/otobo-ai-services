@@ -13,12 +13,11 @@ from pydantic import BaseModel
 
 from src.auth import get_api_key
 from src.settings import AppSettings
-from src.embedding import (
+from src.llm_embedding_utils import (
     UploadTicket,
     aquery_embeddings,
     delete_embedding,
     delete_embeddings,
-    get_embedding,
     get_heartbeat,
     put_embeddings,
 )
@@ -81,7 +80,7 @@ async def redirect_root_to_docs():
 
 
 @app.get(
-    "/ai/db/heartbeat",
+    "/otobo-ai/db/heartbeat",
     description="Checks whether the database is reachable.",
 )
 async def heartbeat():
@@ -115,7 +114,7 @@ add_routes(
 
 
 @app.post(
-    "/ai/embedding/query/",
+    "/otobo-ai/embedding/query/",
     name="Query Embedding",
     description="""Get embedded data by text-search.\n
     query_texts - The document texts to get the closes neighbors of. Optional. \n
@@ -126,30 +125,18 @@ add_routes(
 )
 async def post_query(
     query_texts: Optional[List[str]] = None,
-    where: Optional[List[Dict]] = None,
+    where: Optional[Dict[str, Any]] = None,
     n_results: int = Body(default=10),
-    # include: Include = ["metadatas", "documents"],
 ):
     return await aquery_embeddings(
         query_texts=query_texts,
         where_filter=where,
         n_results=n_results,
-        # include=include,
     )
 
 
-@app.get(
-    "/ai/embedding/invoke/{id}",
-    name="Get",
-    description="Get embedded data by id.",
-    dependencies=[Depends(get_api_key)],
-)
-async def get(id: str):
-    return await get_embedding(id)
-
-
 @app.put(
-    "/ai/embedding/insert/",
+    "/otobo-ai/embedding/insert/",
     name="Insert",
     description="Put list of embed datas into db, chunks and creates vectors.",
     dependencies=[Depends(get_api_key)],
@@ -159,7 +146,7 @@ async def put(embeds: List[UploadTicket]):
 
 
 @app.delete(
-    "/ai/embedding/delete/{id}",
+    "/otobo-ai/embedding/delete/{id}",
     name="Delete",
     description="Delete embedded data by id.",
     dependencies=[Depends(get_api_key)],
@@ -169,7 +156,7 @@ async def delete(id: str):
 
 
 @app.post(
-    "/ai/embedding/delete-many/",
+    "/otobo-ai/embedding/delete-many/",
     name="Delete Many",
     description="Delete embedded data by filter.\nAt least one of the optional parameters 'ids', 'where' must be specified.",
 )
