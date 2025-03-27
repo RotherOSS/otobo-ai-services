@@ -65,7 +65,8 @@ def get_meta(ticket: Ticket):
 async def get_heartbeat():
     try:
         client = get_vectorstore(with_embedding=False)
-        return client.client.info()
+        client.get()
+        return {"status": "ok"}
     except Exception as e:
         logger.error(f"Error getting heartbeat: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -146,16 +147,24 @@ async def delete_embedding(id: str):
 
 @logger.catch(reraise=True)
 async def delete_embeddings(
-        ids: Any | None = None,
-        where: Optional[Dict] = None,
+    ids: Any | None = None,
+    where: Optional[Dict] = None,
 ):
     if not ids and not where:
         raise HTTPException(status_code=400, detail="Either ids or where condition must be provided")
 
     try:
         vector_store = get_vectorstore(with_embedding=False)
-        vector_store.delete(ids=ids, filter=where)
-        return {"deleted_ids": ids if ids else "Deleted by filter"}
+
+        delete_kwargs = {}
+        if ids:
+            delete_kwargs["ids"] = ids
+        if where:
+            delete_kwargs["where"] = where
+
+        vector_store.delete(**delete_kwargs)
+
+        return {"deleted": delete_kwargs}
     except Exception as e:
         logger.error(f"Error deleting embeddings: {e}")
         raise HTTPException(status_code=500, detail=str(e))
