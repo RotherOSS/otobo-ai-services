@@ -113,7 +113,7 @@ add_routes(
     rag_graph.with_config(config),
     input_type=InputDict,
     output_type=OutputDict,
-    path="/ai/tas/create-answer",
+    path="/otobo-ai/create-answer",
     dependencies=[Depends(get_api_key)],
 )
 

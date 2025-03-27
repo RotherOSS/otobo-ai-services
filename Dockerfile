@@ -1,8 +1,7 @@
-# This is the build file for the OTOBO AI docker image.
-
+# Base image with Python
 FROM python:3.12-slim
 
-# Install required build tools and optional Debian packages
+# Install build tools and useful Debian packages
 RUN apt-get update \
     && apt-get -y --no-install-recommends install \
     build-essential \
@@ -17,21 +16,21 @@ RUN apt-get update \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-RUN pip install poetry==1.8.4
-
-RUN poetry config virtualenvs.create false
-
+# Set work directory
 WORKDIR /code
 
-COPY ./pyproject.toml ./README.md ./poetry.lock* ./
+# Copy requirements and install
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy source code
 COPY ./src ./src
 
-RUN poetry lock --no-update
-RUN poetry install --no-interaction --no-ansi
-
-### BUGFIX
+# BUGFIX: overwrite langgraph config file
 COPY ./bugfix/config.py /usr/local/lib/python3.12/site-packages/langgraph/utils/config.py
 
+# Optional: expose port if running container standalone
 # EXPOSE 8080
 
-CMD exec uvicorn src.server:app --host 0.0.0.0 --port 8080 --loop asyncio
+# Default startup command
+CMD ["uvicorn", "src.server:app", "--host", "0.0.0.0", "--port", "8080", "--loop", "asyncio"]
