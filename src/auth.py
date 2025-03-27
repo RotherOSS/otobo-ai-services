@@ -21,7 +21,7 @@ async def get_api_key(api_key_header: str = Security(api_key_header)):
     Returns:
         _type_: _description_
     """
-    if api_key_header == settings.AI_API_KEY:
+    if api_key_header == settings.OTOBO_AI_API_KEY:
         return api_key_header
     else:
         raise HTTPException(

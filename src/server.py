@@ -33,17 +33,13 @@ async def lifespan(app: FastAPI):
     os.makedirs("./data/log", exist_ok=True)
 
     logger.add(
-        settings.LOG_FILE,
+        settings.OTOBO_AI_LOG_FILE,
         colorize=False,
         enqueue=True,
         level=os.getenv("LOGLEVEL", default="DEBUG"),
         rotation="1 MB",
     )
-    logger.success(f"Starting server with loglevel: {settings.LOG_LEVEL}")
-    if os.getenv("RAG_FILTER", "") != "":
-        logger.warning(
-            f"RAG_FILTER is set (value: {os.getenv('RAG_FILTER', '')}). Only datasets with this type in metadata will be used. All other datasets will be ignored!"
-        )
+    logger.success(f"Starting server with loglevel: {settings.OTOBO_AI_LOG_LEVEL}")
 
     ### after the application has finished ###
     yield
@@ -59,7 +55,7 @@ app = FastAPI(
 )
 
 config = None
-if settings.LANGFUSE_SECRET_KEY:
+if settings.OTOBO_AI_LANGFUSE_SK:
     from langfuse.callback import CallbackHandler
 
     langfuse_handler = CallbackHandler()
@@ -69,7 +65,7 @@ if settings.LANGFUSE_SECRET_KEY:
         config = RunnableConfig(callbacks=[langfuse_handler])
     except Exception as e:
         logger.error(
-            "Die Authentifizierung mit Langfuse ist fehlgeschlagen. Sind die env-Variablen LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY und LANGFUSE_HOST gesetzt?"
+            "Die Authentifizierung mit Langfuse ist fehlgeschlagen. Sind die env-Variablen OTOBO_AI_LANGFUSE_PK, OTOBO_AI_LANGFUSE_SK und OTOBO_AI_LANGFUSE_HOST gesetzt?"
         )
         logger.error(e)
 else:
@@ -190,4 +186,4 @@ async def delete_many(
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host=settings.AI_API_SERVER_HOST, port=settings.AI_API_SERVER_PORT)
+    uvicorn.run(app, host=settings.OTOBO_AI_HOST, port=settings.OTOBO_AI_PORT)

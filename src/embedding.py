@@ -16,7 +16,7 @@ settings = AppSettings()
 @logger.catch(reraise=True)
 def get_embeddingsmodel():
     return OllamaEmbeddings(
-        base_url=settings.LLM_OLLAMA_URL, model=settings.LLM_OLLAMA_EMBEDDING_MODEL
+        base_url=settings.OTOBO_AI_LLM_HOST, model=settings.OTOBO_AI_EMBEDDING_MODEL
     )
 
 
@@ -25,9 +25,9 @@ def get_vectorstore(with_embedding: bool = True):
     db_embedding = get_embeddingsmodel() if with_embedding else None
 
     return Chroma(
-        collection_name=settings.AI_VECTORSTORE_INDEX,
+        collection_name=settings.OTOBO_AI_CHROMA_COLLECTION,
         embedding_function=db_embedding,
-        persist_directory=settings.CHROMA_PERSIST_DIRECTORY  # You can define this in your .env or settings
+        persist_directory=settings.OTOBO_AI_CHROMA_DIR  # You can define this in your .env or settings
     )
 
 
@@ -35,18 +35,18 @@ def get_vectorstore(with_embedding: bool = True):
 def get_model(use_ollama_json_format: bool = False):
     if use_ollama_json_format:
         return ChatOllama(
-            base_url=settings.LLM_OLLAMA_URL,
-            model=settings.LLM_OLLAMA_MODEL,
-            temperature=settings.LLM_TEMPERATURE,
-            headers={"otobo-api-key": settings.LLM_OTOBO_API_KEY},
+            base_url=settings.OTOBO_AI_LLM_HOST,
+            model=settings.OTOBO_AI_LLM_MODEL,
+            temperature=settings.OTOBO_AI_LLM_TEMPERATURE,
+            headers={"otobo-api-key": settings.OTOBO_AI_LLM_API_KEY},
             format="json",
         )
     else:
         return ChatOllama(
-            base_url=settings.LLM_OLLAMA_URL,
-            model=settings.LLM_OLLAMA_MODEL,
-            temperature=settings.LLM_TEMPERATURE,
-            headers={"otobo-api-key": settings.LLM_OTOBO_API_KEY},
+            base_url=settings.OTOBO_AI_LLM_HOST,
+            model=settings.OTOBO_AI_LLM_MODEL,
+            temperature=settings.OTOBO_AI_LLM_TEMPERATURE,
+            headers={"otobo-api-key": settings.OTOBO_AI_LLM_API_KEY},
         )
 
 
@@ -103,8 +103,8 @@ async def get_embedding(id: str):
         dict: The retrieved embedding metadata and vector.
     """
     try:
-        client = PersistentClient(path=settings.CHROMA_PERSIST_DIRECTORY)
-        collection = client.get_collection(settings.AI_VECTORSTORE_INDEX)
+        client = PersistentClient(path=settings.OTOBO_AI_CHROMA_DIR)
+        collection = client.get_collection(settings.OTOBO_AI_CHROMA_COLLECTION)
         embedding = collection.get(ids=[id])
         return embedding
     except Exception as e:
@@ -235,8 +235,8 @@ async def delete_embedding(id: str):
         str: deleted id
     """
     try:
-        client = PersistentClient(path=settings.CHROMA_PERSIST_DIRECTORY)
-        collection = client.get_collection(settings.AI_VECTORSTORE_INDEX)
+        client = PersistentClient(path=settings.OTOBO_AI_CHROMA_DIR)
+        collection = client.get_collection(settings.OTOBO_AI_CHROMA_COLLECTION)
         collection.delete(ids=[id])
         return id
     except Exception as e:
@@ -267,8 +267,8 @@ async def delete_embeddings(
         raise HTTPException(status_code=400, detail="Either ids or where condition must be provided")
 
     try:
-        client = PersistentClient(path=settings.CHROMA_PERSIST_DIRECTORY)
-        collection = client.get_collection(settings.AI_VECTORSTORE_INDEX)
+        client = PersistentClient(path=settings.OTOBO_AI_CHROMA_DIR)
+        collection = client.get_collection(settings.OTOBO_AI_CHROMA_COLLECTION)
 
         if ids:
             collection.delete(ids=ids)
