@@ -8,9 +8,8 @@ langchain-ollama==0.2.2
 langchain-experimental==0.3.4
 langfuse==2.59.3
 langgraph==0.2.74
-numpy<2.0
+numpy==1.26.4
 chromadb==0.4.24
 
 # dev dependencies (optional)
-langchain-cli>=0.0.15
-ipykernel==6.29.0
+langchain-cli==0.0.36
