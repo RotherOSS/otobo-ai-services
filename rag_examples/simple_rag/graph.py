@@ -7,7 +7,7 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 from typing_extensions import TypedDict
 
 from src.settings import AppSettings
-from rag_examples.simple_rag.chains import rag_chain
+from src.rags.simple_rag.chains import rag_chain
 from src.llm_embedding_utils import get_vectorstore
 
 settings = AppSettings()
