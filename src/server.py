@@ -84,7 +84,7 @@ def register_rags(app: FastAPI):
                     )
         except (ImportError, AttributeError) as e:
             # Log or handle as needed
-            print(f"Failed to load graph: {e}")
+            logger.error(f"Failed to load graph: {e}")
 
 
 app = FastAPI(

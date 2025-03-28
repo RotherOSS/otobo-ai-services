@@ -247,6 +247,57 @@ LANGFUSE_SECRET_KEY=sk-...
 LANGFUSE_PUBLIC_KEY=pk-...
 LANGFUSE_HOST=http://(ip-Adresse/Servername):3000
 
+## RAG Configuration and Extension
+
+This project supports dynamic loading of RAG (Retrieval-Augmented Generation) modules at runtime via the `register_rags(app: FastAPI)` function.
+
+### How It Works
+
+At startup, the server scans the `src/rags/` directory for subdirectories containing a `graph.py` file. Each `graph.py` must define a `graph` object with a `.with_config(config)` method. These are registered as individual FastAPI routes under `/otobo-ai/{rag_name}` with API key protection.
+
+Each RAG module must follow this contract:
+- A `graph.py` defining the LangGraph workflow (`graph`)
+- Optionally, `chains.py`, prompt templates, and other helpers
+
+### Repository Structure
+
+Only `rag_examples/` is version-controlled. The `src/rags/` directory is `.gitignore`d to keep it clean for user-specific RAGs.
+
+```bash
+src/
+├── rags/              ← not version controlled
+│   ├── simple_rag/    ← copy or create your RAG modules here
+│   │   ├── graph.py
+│   │   ├── chains.py
+│   │   └── prompts/
+│   └── ... 
+└── ...
+rag_examples/          ← reference implementations
+├── simple_rag/        
+└── ...        
+```
+
+### Usage Instructions
+
+1. **Clone the repo**
+
+2. **Copy the example RAGs** (or create your own)
+   ```bash
+   cp -r rag_examples src/rags
+   ```
+
+3. **Run the server**
+   ```bash
+   docker-compose up --build
+   ```
+
+4. **Access the API**
+ 
+   The example simple_rag will be available at:
+   ```
+   POST /otobo-ai/simple_rag/invoke
+   ```
+
 ## Updating Dependencies
 
 To update the dependencies of the Docker Compose project, follow this procedure to ensure compatibility and reproducibility:
