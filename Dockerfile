@@ -28,9 +28,3 @@ COPY ./src ./src
 
 # BUGFIX: overwrite langgraph config file
 COPY ./bugfix/config.py /usr/local/lib/python3.12/site-packages/langgraph/utils/config.py
-
-# Optional: expose port if running container standalone
-# EXPOSE 8080
-
-# Default startup command
-CMD ["uvicorn", "src.server:app", "--host", "0.0.0.0", "--port", "8080", "--loop", "asyncio"]
