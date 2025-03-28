@@ -21,7 +21,9 @@ from src.llm_embedding_utils import (
     get_heartbeat,
     put_embeddings,
 )
-from src.graphs.simple_rag_graph import graph as rag_graph
+import importlib
+import pkgutil
+from fastapi.routing import APIRouter
 
 settings = AppSettings()
 
@@ -44,6 +46,45 @@ async def lifespan(app: FastAPI):
     yield
     # watchfolder.stop()
     logger.success("Server has shut down gracefully.")
+
+
+def register_rags(app: FastAPI):
+    class InputDict(TypedDict):
+        question: str
+        generation: NotRequired[str]
+        messages: NotRequired[Sequence[BaseMessage]]
+
+    class OutputDict(TypedDict):
+        question: str
+        generation: NotRequired[str]
+        messages: NotRequired[Sequence[BaseMessage]]
+        documents: NotRequired[List[Document]]
+
+    logger.info(f"blablarabl")
+    base_dir = os.path.join(os.path.dirname(__file__), "rags")
+    logger.info(base_dir)
+
+    for entry in os.listdir(base_dir):
+        logger.info(entry)
+        try:
+            subdir_path = os.path.join(base_dir, entry)
+            if os.path.isdir(subdir_path):
+                graph_path = os.path.join(subdir_path, "graph.py")
+                if os.path.isfile(graph_path):
+                    spec = importlib.util.spec_from_file_location(f"rags.{entry}.graph", graph_path)
+                    module = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(module)
+                    add_routes(
+                        app,
+                        module.graph.with_config(config),
+                        input_type=InputDict,
+                        output_type=OutputDict,
+                        path=f"/otobo-ai/{entry}",
+                        dependencies=[Depends(get_api_key)],
+                    )
+        except (ImportError, AttributeError) as e:
+            # Log or handle as needed
+            print(f"Failed to load graph: {e}")
 
 
 app = FastAPI(
@@ -90,27 +131,7 @@ async def heartbeat():
 #####################
 ### secure routes ###
 #####################
-class InputDict(TypedDict):
-    question: str
-    generation: NotRequired[str]
-    messages: NotRequired[Sequence[BaseMessage]]
-
-
-class OutputDict(TypedDict):
-    question: str
-    generation: NotRequired[str]
-    messages: NotRequired[Sequence[BaseMessage]]
-    documents: NotRequired[List[Document]]
-
-
-add_routes(
-    app,
-    rag_graph.with_config(config),
-    input_type=InputDict,
-    output_type=OutputDict,
-    path="/otobo-ai/create-answer",
-    dependencies=[Depends(get_api_key)],
-)
+register_rags(app)
 
 
 @app.post(

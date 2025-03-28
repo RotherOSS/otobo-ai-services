@@ -35,7 +35,7 @@ def get_question(json_in):
     return json_in["question"]
 
 
-prompt_path = Path(__file__).parent.parent / "prompts" / "simple_rag_prompt.txt"
+prompt_path = Path(__file__).parent / "prompts" / "prompt.txt"
 prompt_template = prompt_path.read_text(encoding="utf-8")
 
 rag_chain_prompt = PromptTemplate(
