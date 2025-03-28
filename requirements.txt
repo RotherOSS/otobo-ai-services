@@ -1,20 +1,18 @@
 # main dependencies
-uvicorn==0.23.2
-fastapi==0.115.6
+uvicorn==0.34.0
+fastapi==0.115.12
 loguru==0.7.3
-langchain==0.3.14
-langchain-community==0.3.14
-langchain-ollama==0.2.2
+langchain==0.3.21
+langchain-community==0.3.20
+langchain-ollama==0.3.0
 langchain-experimental==0.3.4
-langfuse==2.59.3
-langgraph==0.2.74
-numpy==1.26.4
-chromadb==0.4.24
+langfuse==2.60.2
+langgraph==0.3.21
+chromadb==0.6.3
 
 # critical compatibility fixes
-pydantic==2.10.6
+numpy==1.26.4
 pydantic-core==2.27.2
-langserve==0.3.1
 
 # dev dependencies (optional)
 langchain-cli==0.0.36
