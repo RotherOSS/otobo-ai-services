@@ -246,3 +246,78 @@ In der otobo-api werden dann diese Keys in Enviroment-Variablen hinterlegt.
 LANGFUSE_SECRET_KEY=sk-...
 LANGFUSE_PUBLIC_KEY=pk-...
 LANGFUSE_HOST=http://(ip-Adresse/Servername):3000
+
+## Updating Dependencies
+
+To update the dependencies of the Docker Compose project, follow this procedure to ensure compatibility and reproducibility:
+
+### 1. Unpin Non-Critical Dependencies
+
+In `requirements.txt`, remove version pins from most packages. Keep pins **only** for critical compatibility fixes.
+
+**Before:**
+```txt
+uvicorn==0.25.0
+fastapi==0.108.0
+
+# critical compatibility fixes
+numpy==1.26.4
+```
+
+**After:**
+```txt
+uvicorn
+fastapi
+
+# critical compatibility fixes
+numpy==1.26.4
+```
+
+### 2. Rebuild the Containers
+
+Run:
+```bash
+docker-compose build
+```
+
+### 3. Start the Project
+
+Run:
+```bash
+docker-compose up
+```
+
+Ensure everything starts properly.
+
+### 4. Test Functionality
+
+Test the application as usual. If there are version-related issues, resolve them by pinning the necessary libraries in `requirements.txt`.
+
+### 5. Get Installed Versions
+
+After confirming the application works, extract the actual installed versions:
+```bash
+docker-compose run --rm otobo-ai pip list
+```
+
+### 6. Pin All Dependencies
+
+Use the output of `pip list` to update `requirements.txt`, pinning each used library to its current version.
+
+Example:
+```txt
+uvicorn==0.34.0
+fastapi==0.115.0
+
+# critical compatibility fixes
+numpy==1.26.4
+```
+
+### 7. Commit the Updated Requirements
+
+Once confirmed working, commit the updated `requirements.txt`:
+
+```bash
+git add requirements.txt
+git commit -m "Update pinned dependencies"
+```
