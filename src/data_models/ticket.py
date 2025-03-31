@@ -33,3 +33,22 @@ class UploadTicket(BaseModel):
     type: Union[str, None] = None  # "question", "answer", "additional", ...
     len: Union[int, None] = None
     document: str
+
+
+class ContentItem(BaseModel):
+    type: Literal["title", "user", "agent"]
+    message: str
+
+
+class IngestInput(BaseModel):
+    type: Optional[str] = None  # name of collection and name of data source
+    store_fulltext: bool = False
+    embed_content_type: Optional[List[str]] = None
+    content: List[ContentItem]
+
+
+class IngestInputBatch(BaseModel):
+    type: Optional[str] = None  # name of collection and name of data source
+    store_fulltext: bool = False
+    embed_content_type: Optional[List[str]] = None
+    content: List[List[ContentItem]]

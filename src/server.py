@@ -14,12 +14,14 @@ from pydantic import BaseModel
 from src.auth import get_api_key
 from src.settings import AppSettings
 from src.llm_embedding_utils import (
-    UploadTicket,
+    IngestInput,
+    IngestInputBatch,
     aquery_embeddings,
     delete_embedding,
     delete_embeddings,
     get_heartbeat,
     put_embeddings,
+    put_embeddings_batch,
 )
 import importlib
 import pkgutil
@@ -157,13 +159,23 @@ async def post_query(
 
 
 @app.put(
-    "/otobo-ai/embedding/insert/",
-    name="Insert",
-    description="Put list of embed datas into db, chunks and creates vectors.",
+    "/otobo-ai/embedding/ingest/",
+    name="Ingest",
+    description="Ingest an item of data for embedding.",
     dependencies=[Depends(get_api_key)],
 )
-async def put(embeds: List[UploadTicket]):
+async def put(embeds: IngestInput):
     return await put_embeddings(embeds)
+
+
+@app.put(
+    "/otobo-ai/embedding/ingest-many/",
+    name="Ingest Many",
+    description="Ingest a list of items of data for embedding.",
+    dependencies=[Depends(get_api_key)],
+)
+async def put(embeds: IngestInputBatch):
+    return await put_embeddings_batch(embeds)
 
 
 @app.delete(

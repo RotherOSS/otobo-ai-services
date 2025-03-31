@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import Chroma
 from langchain_ollama import ChatOllama, OllamaEmbeddings
+from langchain.schema import Document
 from loguru import logger
 
 from src.settings import AppSettings
@@ -20,11 +21,11 @@ def get_embeddingsmodel():
 
 
 @logger.catch(reraise=True)
-def get_vectorstore(with_embedding: bool = True):
+def get_vectorstore(with_embedding: bool = True, collection_name: str = settings.OTOBO_AI_CHROMA_COLLECTION):
     db_embedding = get_embeddingsmodel() if with_embedding else None
 
     return Chroma(
-        collection_name=settings.OTOBO_AI_CHROMA_COLLECTION,
+        collection_name=collection_name,
         embedding_function=db_embedding,
         persist_directory=settings.OTOBO_AI_CHROMA_DIR  # You can define this in your .env or settings
     )
@@ -109,29 +110,92 @@ async def aquery_embeddings(
 
 
 @logger.catch(reraise=True)
-async def put_embeddings(tickets: List[UploadTicket]):
-    all_ids = []
+async def put_embeddings(insert_input: InsertInput):
     try:
-        vector_store = get_vectorstore()
-        for ticket in tickets:
+        # Determine collection name from input
+        collection_name = insert_input.type or settings.OTOBO_AI_CHROMA_COLLECTION
+
+        # Store fulltext if enabled
+        fulltext_id = None
+        if insert_input.store_fulltext:
+            fulltext = "\n\n".join([item.type + ": " + item.text for item in insert_input.content])
+            fulltext_store = get_vectorstore(with_embedding=False, collection_name=collection_name + "_fulltext")
+            doc = Document(page_content=fulltext)
+            fulltext_id_list = await fulltext_store.aadd_documents([doc])
+            fulltext_id = fulltext_id_list[0] if fulltext_id_list else None
+
+        # Embed selected content types
+        if insert_input.embed_content_type:
+            selected = [item.text for item in insert_input.content if item.type in insert_input.embed_content_type]
+        else:
+            selected = [item.text for item in insert_input.content]
+
+        if selected:
             text_splitter = RecursiveCharacterTextSplitter(
                 chunk_size=settings.embedding_chunk_size,
                 chunk_overlap=settings.embedding_chunk_overlap,
             )
-            all_splits = text_splitter.create_documents([ticket.document])
+            all_splits = text_splitter.create_documents(selected)
 
-            for i, doc in enumerate(all_splits):
-                doc.metadata = get_meta(ticket)
-                doc.metadata["chunk_id"] = i
-                doc.metadata["chunks"] = len(all_splits)
+            if fulltext_id:
+                for doc in all_splits:
+                    doc.metadata["fulltext_id"] = fulltext_id
 
-            ids = await vector_store.aadd_documents(all_splits)
-            all_ids.extend(ids)
+            embed_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
+            await embed_store.aadd_documents(all_splits)
+
     except Exception as e:
         logger.error(f"Error inserting embeddings: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-    return all_ids
+
+@logger.catch(reraise=True)
+async def put_embeddings_batch(batch_input: InsertInputBatch):
+    # Use the same collection for all entries
+    collection_name = batch_input.type or settings.OTOBO_AI_CHROMA_COLLECTION
+
+    # Process fulltexts in batch if enabled
+    fulltext_ids = []
+    if batch_input.store_fulltext:
+        fulltext_docs = []
+        for content_list in batch_input.content:
+            # Concatenate all content items into one fulltext per entry
+            fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in content_list])
+            fulltext_docs.append(Document(page_content=fulltext))
+        fulltext_store = get_vectorstore(with_embedding=False, collection_name=collection_name + "_fulltext")
+        # Call aadd_documents once for all fulltexts
+        fulltext_ids = await fulltext_store.aadd_documents(fulltext_docs)
+
+    # Prepare embedding documents for all entries
+    embed_docs = []
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=settings.embedding_chunk_size,
+        chunk_overlap=settings.embedding_chunk_overlap,
+    )
+
+    for idx, content_list in enumerate(batch_input.content):
+        # Filter texts by embed_content_type if provided
+        if batch_input.embed_content_type:
+            selected = [item.text for item in content_list if item.type in batch_input.embed_content_type]
+        else:
+            selected = [item.text for item in content_list]
+
+        if not selected:
+            continue
+
+        # Create chunks for the selected texts
+        splits = text_splitter.create_documents(selected)
+
+        # If fulltext is stored, attach the corresponding fulltext id to each chunk
+        if batch_input.store_fulltext and idx < len(fulltext_ids):
+            for doc in splits:
+                doc.metadata["fulltext_id"] = fulltext_ids[idx]
+
+        embed_docs.extend(splits)
+
+    # Batch insert all embedding chunks at once
+    embed_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
+    await embed_store.aadd_documents(embed_docs)
 
 
 @logger.catch(reraise=True)
