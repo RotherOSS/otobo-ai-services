@@ -8,7 +8,7 @@ from langchain.schema import Document
 from loguru import logger
 
 from src.settings import AppSettings
-from src.data_models.ticket import Ticket, UploadTicket
+from src.data_models.ticket import Ticket, UploadTicket, IngestInput, IngestInputBatch
 
 settings = AppSettings()
 
@@ -110,7 +110,7 @@ async def aquery_embeddings(
 
 
 @logger.catch(reraise=True)
-async def put_embeddings(insert_input: InsertInput):
+async def put_embeddings(insert_input: IngestInput):
     try:
         # Determine collection name from input
         collection_name = insert_input.type or settings.OTOBO_AI_CHROMA_COLLECTION
@@ -150,7 +150,7 @@ async def put_embeddings(insert_input: InsertInput):
 
 
 @logger.catch(reraise=True)
-async def put_embeddings_batch(batch_input: InsertInputBatch):
+async def put_embeddings_batch(batch_input: IngestInputBatch):
     # Use the same collection for all entries
     collection_name = batch_input.type or settings.OTOBO_AI_CHROMA_COLLECTION
 

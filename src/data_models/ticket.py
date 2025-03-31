@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional, List
 from pydantic import BaseModel
 
 
@@ -37,7 +37,7 @@ class UploadTicket(BaseModel):
 
 class ContentItem(BaseModel):
     type: str
-    message: str
+    text: str
 
 
 class IngestInput(BaseModel):
