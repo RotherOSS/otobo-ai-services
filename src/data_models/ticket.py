@@ -36,7 +36,7 @@ class UploadTicket(BaseModel):
 
 
 class ContentItem(BaseModel):
-    type: Literal["title", "user", "agent"]
+    type: str
     message: str
 
 
