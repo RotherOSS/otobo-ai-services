@@ -8,6 +8,7 @@ from langchain.schema import Document
 from loguru import logger
 
 from src.settings import AppSettings
+from src.db import get_pg_connection
 from src.data_models.ticket import Ticket, UploadTicket, IngestInput, IngestInputBatch
 
 settings = AppSettings()
@@ -112,19 +113,18 @@ async def aquery_embeddings(
 @logger.catch(reraise=True)
 async def put_embeddings(insert_input: IngestInput):
     try:
-        # Determine collection name from input
         collection_name = insert_input.type or settings.OTOBO_AI_CHROMA_COLLECTION
-
-        # Store fulltext if enabled
         fulltext_id = None
-        if insert_input.store_fulltext:
-            fulltext = "\n\n".join([item.type + ": " + item.text for item in insert_input.content])
-            fulltext_store = get_vectorstore(with_embedding=False, collection_name=collection_name + "_fulltext")
-            doc = Document(page_content=fulltext)
-            fulltext_id_list = await fulltext_store.aadd_documents([doc])
-            fulltext_id = fulltext_id_list[0] if fulltext_id_list else None
 
-        # Embed selected content types
+        if insert_input.store_fulltext:
+            fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in insert_input.content])
+            conn = get_pg_connection()
+            row = await conn.fetchrow(
+                "INSERT INTO fulltext (text) VALUES ($1) RETURNING id",
+                fulltext
+            )
+            fulltext_id = row["id"]
+
         if insert_input.embed_content_type:
             selected = [item.text for item in insert_input.content if item.type in insert_input.embed_content_type]
         else:
@@ -137,7 +137,7 @@ async def put_embeddings(insert_input: IngestInput):
             )
             all_splits = text_splitter.create_documents(selected)
 
-            if fulltext_id:
+            if fulltext_id is not None:
                 for doc in all_splits:
                     doc.metadata["fulltext_id"] = fulltext_id
 
@@ -151,22 +151,22 @@ async def put_embeddings(insert_input: IngestInput):
 
 @logger.catch(reraise=True)
 async def put_embeddings_batch(batch_input: IngestInputBatch):
-    # Use the same collection for all entries
     collection_name = batch_input.type or settings.OTOBO_AI_CHROMA_COLLECTION
-
-    # Process fulltexts in batch if enabled
     fulltext_ids = []
-    if batch_input.store_fulltext:
-        fulltext_docs = []
-        for content_list in batch_input.content:
-            # Concatenate all content items into one fulltext per entry
-            fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in content_list])
-            fulltext_docs.append(Document(page_content=fulltext))
-        fulltext_store = get_vectorstore(with_embedding=False, collection_name=collection_name + "_fulltext")
-        # Call aadd_documents once for all fulltexts
-        fulltext_ids = await fulltext_store.aadd_documents(fulltext_docs)
 
-    # Prepare embedding documents for all entries
+    if batch_input.store_fulltext:
+        fulltext_texts = []
+        for content_list in batch_input.content:
+            fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in content_list])
+            fulltext_texts.append(fulltext)
+
+        conn = get_pg_connection()
+        rows = await conn.fetch(
+            "INSERT INTO fulltext (text) SELECT x FROM unnest($1::text[]) x RETURNING id",
+            fulltext_texts
+        )
+        fulltext_ids = [row["id"] for row in rows]
+
     embed_docs = []
     text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=settings.embedding_chunk_size,
@@ -174,7 +174,6 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
     )
 
     for idx, content_list in enumerate(batch_input.content):
-        # Filter texts by embed_content_type if provided
         if batch_input.embed_content_type:
             selected = [item.text for item in content_list if item.type in batch_input.embed_content_type]
         else:
@@ -183,17 +182,14 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
         if not selected:
             continue
 
-        # Create chunks for the selected texts
         splits = text_splitter.create_documents(selected)
 
-        # If fulltext is stored, attach the corresponding fulltext id to each chunk
         if batch_input.store_fulltext and idx < len(fulltext_ids):
             for doc in splits:
                 doc.metadata["fulltext_id"] = fulltext_ids[idx]
 
         embed_docs.extend(splits)
 
-    # Batch insert all embedding chunks at once
     embed_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
     await embed_store.aadd_documents(embed_docs)
 

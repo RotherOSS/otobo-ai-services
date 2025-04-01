@@ -6,10 +6,12 @@ services:
     build: .
     env_file:
       - .env
-
     ports:
       - 8080:8080
     restart: on-failure:5
+    depends_on:
+      - postgres
+      - chromadb
     command: >
       uvicorn src.server:app
       --host 0.0.0.0
@@ -24,5 +26,18 @@ services:
       - chromadb-data:/chroma
     restart: unless-stopped
 
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${OTOBO_AI_PG_DB}
+      POSTGRES_USER: ${OTOBO_AI_PG_USER}
+      POSTGRES_PASSWORD: ${OTOBO_AI_PG_PW}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./init-sql:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+
 volumes:
   chromadb-data:
+
+  postgres-data:

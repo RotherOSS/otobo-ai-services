@@ -26,6 +26,7 @@ from src.llm_embedding_utils import (
 import importlib
 import pkgutil
 from fastapi.routing import APIRouter
+from src.db import init_pg_connection, close_pg_connection
 
 settings = AppSettings()
 
@@ -43,10 +44,12 @@ async def lifespan(app: FastAPI):
         rotation="1 MB",
     )
     logger.success(f"Starting server with loglevel: {settings.OTOBO_AI_LOG_LEVEL}")
+    await init_pg_connection(settings.POSTGRES_DSN)
 
     ### after the application has finished ###
     yield
     # watchfolder.stop()
+    await close_pg_connection()
     logger.success("Server has shut down gracefully.")
 
 

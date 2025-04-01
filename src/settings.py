@@ -56,6 +56,13 @@ class AppSettings:
 
         self.OTOBO_AI_LOG_FILE = os.getenv("OTOBO_AI_LOG_FILE", "./data/log/apilog.log")
         self.OTOBO_AI_LOG_LEVEL = os.getenv("OTOBO_AI_LOG_LEVEL", "DEBUG")
+        self.POSTGRES_HOST = os.getenv("OTOBO_AI_PG_HOST", "localhost")
+        self.POSTGRES_PORT = os.getenv("OTOBO_AI_PG_PORT", "5432")
+        self.POSTGRES_DB = os.getenv("OTOBO_AI_PG_DB", "fulltext")
+        self.POSTGRES_USER = os.getenv("OTOBO_AI_PG_USER", "otobo_ai")
+        self.POSTGRES_PASSWORD = os.getenv("OTOBO_AI_PG_PW", "my_pw")
+        self.POSTGRES_DSN = (f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+                             f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}")
 
         self.embedding_chunk_size = 1100
         self.embedding_chunk_overlap = 100
