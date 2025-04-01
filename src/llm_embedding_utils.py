@@ -9,7 +9,9 @@ from loguru import logger
 
 from src.settings import AppSettings
 from src.db import get_pg_connection
-from src.data_models.ticket import Ticket, UploadTicket, IngestInput, IngestInputBatch
+from src.data_models.ticket import Ticket
+from src.data_models.ingest import IngestInput, IngestInputBatch
+from src.data_models.retrieve import QueryInput
 
 settings = AppSettings()
 
@@ -52,18 +54,6 @@ def get_model(use_ollama_json_format: bool = False):
 
 
 @logger.catch(reraise=True)
-def get_meta(ticket: Ticket):
-    meta = {
-        "process_id": ticket.process_id,
-        "gdpr_id": ticket.gdpr_id,
-        "topic": ticket.topic,
-        "type": ticket.type,
-        "len": ticket.len,
-    }
-    return meta
-
-
-@logger.catch(reraise=True)
 async def get_heartbeat():
     try:
         client = get_vectorstore(with_embedding=False)
@@ -75,35 +65,29 @@ async def get_heartbeat():
 
 
 @logger.catch(reraise=True)
-def query_embeddings(
-        query_texts: Optional[List[str]] = None,
-        where_filter: Optional[Dict[str, Any]] = None,
-        n_results: int = 10,
-):
+async def query_embeddings(retrieve: QueryInput):
     try:
-        vector_store = get_vectorstore()
-        where_clause = where_filter if where_filter else None
-        result = vector_store.similarity_search(query=query_texts[0] if query_texts else "", filter=where_clause,
-                                                k=n_results)
-        return result
+        collection_name = retrieve.type or settings.OTOBO_AI_CHROMA_COLLECTION
+        vector_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
+        results = await vector_store.asimilarity_search(query=retrieve.query_text, k=retrieve.n_results)
 
-    except Exception as e:
-        logger.error(f"Error querying embeddings: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        if retrieve.retrieve_fulltext:
+            # Extract unique fulltext IDs
+            fulltext_ids = {doc.metadata.get("fulltext_id") for doc in results if doc.metadata.get("fulltext_id")}
+            if fulltext_ids:
+                conn = get_pg_connection()
+                rows = await conn.fetch(
+                    f"SELECT id, text FROM fulltext WHERE id = ANY($1::int[]);",
+                    list(fulltext_ids)
+                )
+                id_to_text = {row["id"]: row["text"] for row in rows}
 
+                for doc in results:
+                    ft_id = doc.metadata.get("fulltext_id")
+                    if ft_id in id_to_text:
+                        doc.metadata["fulltext"] = id_to_text[ft_id]
 
-@logger.catch(reraise=True)
-async def aquery_embeddings(
-        query_texts: Optional[List[str]] = None,
-        where_filter: Optional[Dict[str, Any]] = None,
-        n_results: int = 10,
-):
-    try:
-        vector_store = get_vectorstore()
-        where_clause = where_filter if where_filter else None
-        result = await vector_store.asimilarity_search(query=query_texts[0] if query_texts else "", filter=where_clause,
-                                                       k=n_results)
-        return result
+        return results
 
     except Exception as e:
         logger.error(f"Error asynch. querying embeddings: {e}")
@@ -117,7 +101,11 @@ async def put_embeddings(insert_input: IngestInput):
         fulltext_id = None
 
         if insert_input.store_fulltext:
-            fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in insert_input.content])
+            if insert_input.fulltext_types:
+                fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in insert_input.content if
+                                        item.type in insert_input.fulltext_types])
+            else:
+                fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in insert_input.content])
             conn = get_pg_connection()
             row = await conn.fetchrow(
                 "INSERT INTO fulltext (text) VALUES ($1) RETURNING id",
@@ -125,8 +113,8 @@ async def put_embeddings(insert_input: IngestInput):
             )
             fulltext_id = row["id"]
 
-        if insert_input.embed_content_type:
-            selected = [item.text for item in insert_input.content if item.type in insert_input.embed_content_type]
+        if insert_input.embed_content_types:
+            selected = [item.text for item in insert_input.content if item.type in insert_input.embed_content_types]
         else:
             selected = [item.text for item in insert_input.content]
 
@@ -151,47 +139,58 @@ async def put_embeddings(insert_input: IngestInput):
 
 @logger.catch(reraise=True)
 async def put_embeddings_batch(batch_input: IngestInputBatch):
-    collection_name = batch_input.type or settings.OTOBO_AI_CHROMA_COLLECTION
-    fulltext_ids = []
+    try:
+        collection_name = batch_input.type or settings.OTOBO_AI_CHROMA_COLLECTION
+        fulltext_ids = []
 
-    if batch_input.store_fulltext:
-        fulltext_texts = []
-        for content_list in batch_input.content:
-            fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in content_list])
-            fulltext_texts.append(fulltext)
+        if batch_input.store_fulltext:
+            fulltext_texts = []
+            if batch_input.fulltext_types:
+                for content_list in batch_input.content:
+                    fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in content_list if
+                                            item.type in batch_input.fulltext_types])
+                    fulltext_texts.append(fulltext)
+            else:
+                for content_list in batch_input.content:
+                    fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in content_list])
+                    fulltext_texts.append(fulltext)
 
-        conn = get_pg_connection()
-        rows = await conn.fetch(
-            "INSERT INTO fulltext (text) SELECT x FROM unnest($1::text[]) x RETURNING id",
-            fulltext_texts
+            conn = get_pg_connection()
+            rows = await conn.fetch(
+                "INSERT INTO fulltext (text) SELECT x FROM unnest($1::text[]) x RETURNING id",
+                fulltext_texts
+            )
+            fulltext_ids = [row["id"] for row in rows]
+
+        embed_docs = []
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=settings.embedding_chunk_size,
+            chunk_overlap=settings.embedding_chunk_overlap,
         )
-        fulltext_ids = [row["id"] for row in rows]
 
-    embed_docs = []
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=settings.embedding_chunk_size,
-        chunk_overlap=settings.embedding_chunk_overlap,
-    )
+        for idx, content_list in enumerate(batch_input.content):
+            if batch_input.embed_content_types:
+                selected = [item.text for item in content_list if item.type in batch_input.embed_content_types]
+            else:
+                selected = [item.text for item in content_list]
 
-    for idx, content_list in enumerate(batch_input.content):
-        if batch_input.embed_content_type:
-            selected = [item.text for item in content_list if item.type in batch_input.embed_content_type]
-        else:
-            selected = [item.text for item in content_list]
+            if not selected:
+                continue
 
-        if not selected:
-            continue
+            splits = text_splitter.create_documents(selected)
 
-        splits = text_splitter.create_documents(selected)
+            if batch_input.store_fulltext and idx < len(fulltext_ids):
+                for doc in splits:
+                    doc.metadata["fulltext_id"] = fulltext_ids[idx]
 
-        if batch_input.store_fulltext and idx < len(fulltext_ids):
-            for doc in splits:
-                doc.metadata["fulltext_id"] = fulltext_ids[idx]
+            embed_docs.extend(splits)
 
-        embed_docs.extend(splits)
+        embed_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
+        await embed_store.aadd_documents(embed_docs)
 
-    embed_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
-    await embed_store.aadd_documents(embed_docs)
+    except Exception as e:
+        logger.error(f"Error inserting embeddings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @logger.catch(reraise=True)

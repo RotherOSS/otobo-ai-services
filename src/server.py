@@ -14,15 +14,15 @@ from pydantic import BaseModel
 from src.auth import get_api_key
 from src.settings import AppSettings
 from src.llm_embedding_utils import (
-    IngestInput,
-    IngestInputBatch,
-    aquery_embeddings,
+    query_embeddings,
     delete_embedding,
     delete_embeddings,
     get_heartbeat,
     put_embeddings,
     put_embeddings_batch,
 )
+from src.data_models.ingest import IngestInput, IngestInputBatch
+from src.data_models.retrieve import QueryInput
 import importlib
 import pkgutil
 from fastapi.routing import APIRouter
@@ -54,7 +54,7 @@ async def lifespan(app: FastAPI):
 
 
 def register_rags(app: FastAPI):
-    class InputDict(TypedDict):
+    class InputDict(TypedDict):  # todo use basemodel types and define in data models
         question: str
         generation: NotRequired[str]
         messages: NotRequired[Sequence[BaseMessage]]
@@ -65,12 +65,9 @@ def register_rags(app: FastAPI):
         messages: NotRequired[Sequence[BaseMessage]]
         documents: NotRequired[List[Document]]
 
-    logger.info(f"blablarabl")
     base_dir = os.path.join(os.path.dirname(__file__), "rags")
-    logger.info(base_dir)
 
     for entry in os.listdir(base_dir):
-        logger.info(entry)
         try:
             subdir_path = os.path.join(base_dir, entry)
             if os.path.isdir(subdir_path):
@@ -149,16 +146,8 @@ register_rags(app)
     Ids are always included. Defaults to ["metadatas", "documents"]. Optional.""",
     dependencies=[Depends(get_api_key)],
 )
-async def post_query(
-    query_texts: Optional[List[str]] = None,
-    where: Optional[Dict[str, Any]] = None,
-    n_results: int = Body(default=10),
-):
-    return await aquery_embeddings(
-        query_texts=query_texts,
-        where_filter=where,
-        n_results=n_results,
-    )
+async def post_query(retrieve: QueryInput):
+    return await query_embeddings(retrieve)
 
 
 @app.put(
