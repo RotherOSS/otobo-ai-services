@@ -26,7 +26,7 @@ from src.data_models.retrieve import QueryInput
 import importlib
 import pkgutil
 from fastapi.routing import APIRouter
-from src.db import init_pg_connection, close_pg_connection
+from src.db import init_pg_pool, close_pg_pool
 
 settings = AppSettings()
 
@@ -44,26 +44,24 @@ async def lifespan(app: FastAPI):
         rotation="1 MB",
     )
     logger.success(f"Starting server with loglevel: {settings.OTOBO_AI_LOG_LEVEL}")
-    await init_pg_connection(settings.POSTGRES_DSN)
+    await init_pg_pool(settings.POSTGRES_DSN)
 
     ### after the application has finished ###
     yield
     # watchfolder.stop()
-    await close_pg_connection()
+    await close_pg_pool()
     logger.success("Server has shut down gracefully.")
 
 
 def register_rags(app: FastAPI):
     class InputDict(TypedDict):  # todo: use basemodel types and define in data models
         question: str
-        generation: NotRequired[str]
-        messages: NotRequired[Sequence[BaseMessage]]
+        do_scoring: NotRequired[bool]
 
     class OutputDict(TypedDict):
         question: str
         generation: NotRequired[str]
-        messages: NotRequired[Sequence[BaseMessage]]
-        documents: NotRequired[List[Document]]
+        score: NotRequired[float]
 
     base_dir = os.path.join(os.path.dirname(__file__), "rags")
 

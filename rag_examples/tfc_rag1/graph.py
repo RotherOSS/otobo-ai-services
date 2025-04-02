@@ -7,7 +7,7 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 from typing_extensions import TypedDict
 
 from src.settings import AppSettings
-from src.rags.tfc_rag1.chains import rag_chain
+from src.rags.tfc_rag1.chains import rag_chain, eval_chain
 from src.llm_embedding_utils import get_vectorstore, query_embeddings
 from src.data_models.retrieve import QueryInput
 
@@ -15,12 +15,14 @@ settings = AppSettings()
 
 
 class GraphState(TypedDict):
+    do_scoring: bool | None
     question: str
     generation: str | None
     faqs: List[Document] | None
     docs: List[Document] | None
     ticket_chunks: List[Document] | None
     ticket_pairs: List[Document] | None
+    score: float | None
 
 
 def retrieve_function_generator(query_input: QueryInput, output: str):
@@ -30,7 +32,6 @@ def retrieve_function_generator(query_input: QueryInput, output: str):
         logger.info(f"---Retrieving from {query_input.type}---")
         query_input.query_text = state["question"]
         results = await query_embeddings(query_input)
-        # logger.debug(f"Retrieved data: {results}")
         if query_input.retrieve_fulltext:
             results = [result.metadata["fulltext"] for result in results]
         else:
@@ -52,6 +53,21 @@ def generate(state: GraphState):
     return {
         "generation": generation,
     }
+
+
+@logger.catch(reraise=True)
+@retry(stop=stop_after_attempt(3), wait=wait_fixed(5))
+def evaluate(state: GraphState):
+    """
+    Generate answer using RAG on retrieved documents
+    """
+    if "do_scoring" in state and state["do_scoring"]:
+        logger.info("---Evaluating---")
+
+        score = eval_chain.invoke(state)
+        return {
+            "score": score,
+        }
 
 
 workflow = StateGraph(GraphState)
@@ -87,7 +103,9 @@ retrieve_input = QueryInput(
     n_results=2
 )
 workflow.add_node("retrieve_ticket_pairs", retrieve_function_generator(retrieve_input, "ticket_pairs"))
+
 workflow.add_node("generate", generate)
+workflow.add_node("evaluate", evaluate)
 
 workflow.add_edge(START, "retrieve_faq")
 workflow.add_edge(START, "retrieve_documentation")
@@ -97,6 +115,8 @@ workflow.add_edge("retrieve_faq", "generate")
 workflow.add_edge("retrieve_documentation", "generate")
 workflow.add_edge("retrieve_full_ticket_chunks", "generate")
 workflow.add_edge("retrieve_ticket_pairs", "generate")
+workflow.add_edge("generate", "evaluate")
 workflow.add_edge("generate", END)
+workflow.add_edge("evaluate", END)
 
 graph = workflow.compile()

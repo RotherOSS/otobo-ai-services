@@ -8,7 +8,7 @@ from langchain.schema import Document
 from loguru import logger
 
 from src.settings import AppSettings
-from src.db import get_pg_connection
+from src.db import get_pg_pool
 from src.data_models.ticket import Ticket
 from src.data_models.ingest import IngestInput, IngestInputBatch
 from src.data_models.retrieve import QueryInput
@@ -75,11 +75,12 @@ async def query_embeddings(retrieve: QueryInput):
             # Extract unique fulltext IDs
             fulltext_ids = {doc.metadata.get("fulltext_id") for doc in results if doc.metadata.get("fulltext_id")}
             if fulltext_ids:
-                conn = get_pg_connection()
-                rows = await conn.fetch(
-                    f"SELECT id, text FROM fulltext WHERE id = ANY($1::int[]);",
-                    list(fulltext_ids)
-                )
+                pool = get_pg_pool()
+                async with pool.acquire() as conn:
+                    rows = await conn.fetch(
+                        f"SELECT id, text FROM fulltext WHERE id = ANY($1::int[]);",
+                        list(fulltext_ids)
+                    )
                 id_to_text = {row["id"]: row["text"] for row in rows}
 
                 for doc in results:
@@ -106,11 +107,13 @@ async def put_embeddings(insert_input: IngestInput):
                                         item.type in insert_input.fulltext_types])
             else:
                 fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in insert_input.content])
-            conn = get_pg_connection()
-            row = await conn.fetchrow(
-                "INSERT INTO fulltext (text) VALUES ($1) RETURNING id",
-                fulltext
-            )
+
+            pool = get_pg_pool()
+            async with pool.acquire() as conn:
+                row = await conn.fetchrow(
+                    "INSERT INTO fulltext (text) VALUES ($1) RETURNING id",
+                    fulltext
+                )
             fulltext_id = row["id"]
 
         if insert_input.embed_content_types:
@@ -155,11 +158,12 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
                     fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in content_list])
                     fulltext_texts.append(fulltext)
 
-            conn = get_pg_connection()
-            rows = await conn.fetch(
-                "INSERT INTO fulltext (text) SELECT x FROM unnest($1::text[]) x RETURNING id",
-                fulltext_texts
-            )
+            pool = get_pg_pool()
+            async with pool.acquire() as conn:
+                rows = await conn.fetch(
+                    "INSERT INTO fulltext (text) SELECT x FROM unnest($1::text[]) x RETURNING id",
+                    fulltext_texts
+                )
             fulltext_ids = [row["id"] for row in rows]
 
         embed_docs = []
