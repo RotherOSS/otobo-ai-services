@@ -54,7 +54,7 @@ async def lifespan(app: FastAPI):
 
 
 def register_rags(app: FastAPI):
-    class InputDict(TypedDict):  # todo use basemodel types and define in data models
+    class InputDict(TypedDict):  # todo: use basemodel types and define in data models
         question: str
         generation: NotRequired[str]
         messages: NotRequired[Sequence[BaseMessage]]

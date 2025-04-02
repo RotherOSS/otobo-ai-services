@@ -37,6 +37,13 @@ rag_chain_prompt = PromptTemplate(
 )
 
 
+def log_final_prompt(inputs):
+    # Combine inputs into the final prompt using the prompt template
+    final_prompt = rag_chain_prompt.format(**inputs)
+    logger.debug(f"Final Prompt: {final_prompt}")
+    return inputs
+
+
 rag_chain = (
     RunnableParallel(
         {
@@ -47,6 +54,7 @@ rag_chain = (
             "question": RunnableLambda(get_question),
         }
     )
+    | log_final_prompt
     | rag_chain_prompt
     | llm
     | StrOutputParser()

@@ -26,14 +26,15 @@ class GraphState(TypedDict):
 def retrieve_function_generator(query_input: QueryInput, output: str):
     @logger.catch(reraise=True)
     @retry(stop=stop_after_attempt(3), wait=wait_fixed(5))
-    def retrieve(state: GraphState):
+    async def retrieve(state: GraphState):
         logger.info(f"---Retrieving from {query_input.type}---")
         query_input.query_text = state["question"]
-        results = query_embeddings(query_input)
+        results = await query_embeddings(query_input)
+        # logger.debug(f"Retrieved data: {results}")
         if query_input.retrieve_fulltext:
-            results = [result["metadata"]["fulltext"] for result in results]
+            results = [result.metadata["fulltext"] for result in results]
         else:
-            results = [result["page_content"] for result in results]
+            results = [result.page_content for result in results]
         return {output: results}
 
     return retrieve
@@ -67,7 +68,7 @@ retrieve_input = QueryInput(
     query_text="",
     type="documentation",
     retrieve_fulltext=False,
-    n_results=4
+    n_results=3
 )
 workflow.add_node("retrieve_documentation", retrieve_function_generator(retrieve_input, "docs"))
 
@@ -75,7 +76,7 @@ retrieve_input = QueryInput(
     query_text="",
     type="ticket_chunks",
     retrieve_fulltext=False,
-    n_results=4
+    n_results=3
 )
 workflow.add_node("retrieve_full_ticket_chunks", retrieve_function_generator(retrieve_input, "ticket_chunks"))
 

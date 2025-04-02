@@ -11,20 +11,13 @@ services:
     restart: on-failure:5
     depends_on:
       - postgres
-      - chromadb
+    volumes:
+      - chromadb-data:/chroma
     command: >
       uvicorn src.server:app
       --host 0.0.0.0
       --port 8080
       --loop asyncio
-
-  chromadb:
-    image: chromadb/chroma
-    ports:
-      - "8000:8000"
-    volumes:
-      - chromadb-data:/chroma
-    restart: unless-stopped
 
   postgres:
     image: postgres:16-alpine
