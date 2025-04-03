@@ -17,6 +17,7 @@ services:
       LANGFUSE_HOST: ${OTOBO_AI_LANGFUSE_HOST}
     volumes:
       - chromadb-data:/chroma
+      - ./rags:/code/src/rags
     command: >
       uvicorn src.server:app
       --host 0.0.0.0

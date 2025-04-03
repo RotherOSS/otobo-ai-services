@@ -283,13 +283,15 @@ rag_examples/          ← reference implementations
 
 2. **Copy the example RAGs** (or create your own)
    ```bash
-   cp -r rag_examples src/rags
+   cp -r rag_examples rags
    ```
 
 3. **Run the server**
    ```bash
    docker-compose up --build
    ```
+   
+   The docker-compose.yml mounts ./rags as src/rags within the container. This allows to mount different directories with other yml files.
 
 4. **Access the API**
  
