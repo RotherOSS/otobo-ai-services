@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
         rotation="1 MB",
     )
     logger.success(f"Starting server with loglevel: {settings.OTOBO_AI_LOG_LEVEL}")
-    await init_pg_pool(settings.POSTGRES_DSN)
+    await init_pg_pool(settings.OTOBO_AI_PG_DSN)
 
     ### after the application has finished ###
     yield

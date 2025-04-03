@@ -50,19 +50,19 @@ class AppSettings:
             "API server using RAG to recommend ticket answers"
         )
 
-        self.OTOBO_AI_LANGFUSE_PK = os.getenv("OTOBO_AI_LANGFUSE_PK", None)
-        self.OTOBO_AI_LANGFUSE_SK = os.getenv("OTOBO_AI_LANGFUSE_SK", None)
-        self.OTOBO_AI_LANGFUSE_HOST = os.getenv("OTOBO_AI_LANGFUSE_HOST", "http://localhost:3000")
+        self.OTOBO_AI_LANGFUSE_PK = os.getenv("LANGFUSE_PUBLIC_KEY", None)
+        self.OTOBO_AI_LANGFUSE_SK = os.getenv("LANGFUSE_SECRET_KEY", None)
+        self.OTOBO_AI_LANGFUSE_HOST = os.getenv("LANGFUSE_HOST", "http://localhost:3000")
 
         self.OTOBO_AI_LOG_FILE = os.getenv("OTOBO_AI_LOG_FILE", "./data/log/apilog.log")
         self.OTOBO_AI_LOG_LEVEL = os.getenv("OTOBO_AI_LOG_LEVEL", "DEBUG")
-        self.POSTGRES_HOST = os.getenv("OTOBO_AI_PG_HOST", "localhost")
-        self.POSTGRES_PORT = os.getenv("OTOBO_AI_PG_PORT", "5432")
-        self.POSTGRES_DB = os.getenv("OTOBO_AI_PG_DB", "fulltext")
-        self.POSTGRES_USER = os.getenv("OTOBO_AI_PG_USER", "otobo_ai")
-        self.POSTGRES_PASSWORD = os.getenv("OTOBO_AI_PG_PW", "my_pw")
-        self.POSTGRES_DSN = (f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
-                             f"@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}")
+        self.OTOBO_AI_PG_HOST = os.getenv("OTOBO_AI_PG_HOST", "postgres")
+        self.OTOBO_AI_PG_PORT = os.getenv("OTOBO_AI_PG_PORT", "5432")
+        self.OTOBO_AI_PG_DB = os.getenv("OTOBO_AI_PG_DB", "fulltext")
+        self.OTOBO_AI_PG_USER = os.getenv("OTOBO_AI_PG_USER", "otobo_ai")
+        self.OTOBO_AI_PG_PW = os.getenv("OTOBO_AI_PG_PW")
+        self.OTOBO_AI_PG_DSN = (f"postgresql://{self.OTOBO_AI_PG_USER}:{self.OTOBO_AI_PG_PW}"
+                             f"@{self.OTOBO_AI_PG_HOST}:{self.OTOBO_AI_PG_PORT}/{self.OTOBO_AI_PG_DB}")
 
         self.embedding_chunk_size = 1100
         self.embedding_chunk_overlap = 100

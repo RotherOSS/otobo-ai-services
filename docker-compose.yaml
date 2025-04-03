@@ -11,6 +11,10 @@ services:
     restart: on-failure:5
     depends_on:
       - postgres
+    environment:
+      LANGFUSE_PUBLIC_KEY: ${OTOBO_AI_LANGFUSE_PK}
+      LANGFUSE_SECRET_KEY: ${OTOBO_AI_LANGFUSE_SK}
+      LANGFUSE_HOST: ${OTOBO_AI_LANGFUSE_HOST}
     volumes:
       - chromadb-data:/chroma
     command: >

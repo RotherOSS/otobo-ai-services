@@ -13,12 +13,6 @@ llm = get_model()
 json_llm = get_model(use_ollama_json_format=True)
 
 
-def log_step(inputs):
-    # Combine inputs into the final prompt using the prompt template
-    logger.debug(f"Step state: {inputs}")
-    return inputs
-
-
 def context_formatting_func_generator(key):
     def inner(dictonary_docs):
         texts = dictonary_docs.get(key, [])
@@ -45,13 +39,6 @@ rag_chain_prompt = PromptTemplate(
 )
 
 
-def log_final_prompt(inputs):
-    # Combine inputs into the final prompt using the prompt template
-    final_prompt = rag_chain_prompt.format(**inputs)
-    logger.debug(f"Final Prompt: {final_prompt}")
-    return inputs
-
-
 rag_chain = (
     RunnableParallel(
         {
@@ -62,7 +49,6 @@ rag_chain = (
             "question": RunnableLambda(get_question),
         }
     )
-    | log_final_prompt
     | rag_chain_prompt
     | llm
     | StrOutputParser()
@@ -85,13 +71,6 @@ eval_chain_prompt = PromptTemplate(
     template=prompt_template,
     input_variables=["question", "faqs", "docs", "ticket_chunks", "ticket_pairs", "generation"],
 )
-
-
-def log_eval_prompt(inputs):
-    # Combine inputs into the final prompt using the prompt template
-    eval_prompt = eval_chain_prompt.format(**inputs)
-    logger.debug(f"Final Prompt: {eval_prompt}")
-    return inputs
 
 
 def structure_output(llm_output):
@@ -117,11 +96,9 @@ def combine_score(validated_response):
 
 
 eval_chain = (
-    log_eval_prompt
-    | eval_chain_prompt
+    eval_chain_prompt
     | llm
     | StrOutputParser()
-    | log_step
     | structure_output
     | combine_score
 )
