@@ -1,6 +1,6 @@
 import os
 from contextlib import asynccontextmanager
-from typing import Any, Dict, List, NotRequired, Optional, Sequence, TypedDict
+from typing import Any, Dict, List, Optional, Sequence
 
 from fastapi import Body, Depends, FastAPI
 from fastapi.responses import RedirectResponse
@@ -54,36 +54,44 @@ async def lifespan(app: FastAPI):
 
 
 def register_rags(app: FastAPI):
-    class InputDict(TypedDict):  # todo: use basemodel types and define in data models
-        question: str
-        do_scoring: NotRequired[bool]
-
-    class OutputDict(TypedDict):
-        question: str
-        generation: NotRequired[str]
-        score: NotRequired[float]
-
     base_dir = os.path.join(os.path.dirname(__file__), "rags")
 
     for entry in os.listdir(base_dir):
         try:
             subdir_path = os.path.join(base_dir, entry)
-            if os.path.isdir(subdir_path):
-                graph_path = os.path.join(subdir_path, "graph.py")
-                if os.path.isfile(graph_path):
-                    spec = importlib.util.spec_from_file_location(f"rags.{entry}.graph", graph_path)
-                    module = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(module)
-                    add_routes(
-                        app,
-                        module.graph.with_config(config),
-                        input_type=InputDict,
-                        output_type=OutputDict,
-                        path=f"/otobo-ai/{entry}",
-                        dependencies=[Depends(get_api_key)],
-                    )
+            if not os.path.isdir(subdir_path):
+                continue
+
+            graph_path = os.path.join(subdir_path, "graph.py")
+            io_path = os.path.join(subdir_path, "io_models.py")
+
+            if not (os.path.isfile(graph_path) and os.path.isfile(io_path)):
+                logger.warning(f"Missing graph.py or io_models.py in {entry}")
+                continue
+
+            # Load graph module
+            graph_spec = importlib.util.spec_from_file_location(f"rags.{entry}.graph", graph_path)
+            graph_module = importlib.util.module_from_spec(graph_spec)
+            graph_spec.loader.exec_module(graph_module)
+
+            # Load io_models module
+            io_spec = importlib.util.spec_from_file_location(f"rags.{entry}.io_models", io_path)
+            io_module = importlib.util.module_from_spec(io_spec)
+            io_spec.loader.exec_module(io_module)
+
+            if not all(hasattr(io_module, attr) for attr in ("RAGInput", "RAGOutput")):
+                logger.warning(f"io_models.py in {entry} missing RAGInput or RAGOutput")
+                continue
+
+            add_routes(
+                app,
+                graph_module.graph.with_config(config),
+                input_type=io_module.RAGInput,
+                output_type=io_module.RAGOutput,
+                path=f"/otobo-ai/{entry}",
+                dependencies=[Depends(get_api_key)],
+            )
         except (ImportError, AttributeError) as e:
-            # Log or handle as needed
             logger.error(f"Failed to load graph: {e}")
 
 

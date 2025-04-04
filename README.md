@@ -257,6 +257,7 @@ At startup, the server scans the `src/rags/` directory for subdirectories contai
 
 Each RAG module must follow this contract:
 - A `graph.py` defining the LangGraph workflow (`graph`)
+- A `io_models.py` defining the RAG's input and output data models (`RAGInput` and `RAGOutput`)
 - Optionally, `chains.py`, prompt templates, and other helpers
 
 ### Repository Structure
@@ -269,6 +270,7 @@ src/
 │   ├── simple_rag/    ← copy or create your RAG modules here
 │   │   ├── graph.py
 │   │   ├── chains.py
+│   │   ├── io_models.py
 │   │   └── prompts/
 │   └── ... 
 └── ...
