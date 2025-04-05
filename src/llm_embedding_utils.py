@@ -20,7 +20,7 @@ def get_embeddingsmodel():
 
 
 @logger.catch(reraise=True)
-def get_vectorstore(with_embedding: bool = True, collection_name: str = settings.OTOBO_AI_CHROMA_COLLECTION):
+def get_vectorstore(with_embedding: bool = True, collection_name: str = settings.OTOBO_AI_CHROMA_DEF_COL_NAME):
     db_embedding = get_embeddingsmodel() if with_embedding else None
 
     return Chroma(
@@ -63,7 +63,7 @@ async def get_heartbeat():
 @logger.catch(reraise=True)
 async def query_embeddings(retrieve: QueryInput):
     try:
-        collection_name = retrieve.type or settings.OTOBO_AI_CHROMA_COLLECTION
+        collection_name = retrieve.type or settings.OTOBO_AI_CHROMA_DEF_COL_NAME
         vector_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
         results = await vector_store.asimilarity_search(query=retrieve.query_text, k=retrieve.n_results)
 
@@ -93,7 +93,7 @@ async def query_embeddings(retrieve: QueryInput):
 @logger.catch(reraise=True)
 async def put_embeddings(insert_input: IngestInput):
     try:
-        collection_name = insert_input.type or settings.OTOBO_AI_CHROMA_COLLECTION
+        collection_name = insert_input.type or settings.OTOBO_AI_CHROMA_DEF_COL_NAME
         fulltext_id = None
 
         if insert_input.store_fulltext:
@@ -138,7 +138,7 @@ async def put_embeddings(insert_input: IngestInput):
 @logger.catch(reraise=True)
 async def put_embeddings_batch(batch_input: IngestInputBatch):
     try:
-        collection_name = batch_input.type or settings.OTOBO_AI_CHROMA_COLLECTION
+        collection_name = batch_input.type or settings.OTOBO_AI_CHROMA_DEF_COL_NAME
         fulltext_ids = []
 
         if batch_input.store_fulltext:

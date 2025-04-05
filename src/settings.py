@@ -25,7 +25,7 @@ class AppSettings:
         self.OTOBO_AI_PORT = int(os.getenv("OTOBO_AI_PORT", "8080"))
 
         self.OTOBO_AI_CHROMA_DIR = os.getenv("OTOBO_AI_CHROMA_DIR", "/chroma")
-        self.OTOBO_AI_CHROMA_COLLECTION = os.getenv("OTOBO_AI_CHROMA_COLLECTION", "documents")
+        self.OTOBO_AI_CHROMA_DEF_COL_NAME = "documentation"
 
         self.OTOBO_AI_LLM_API_KEY = os.getenv("OTOBO_AI_LLM_API_KEY", None)
         self.OTOBO_AI_LLM_HOST = os.getenv("OTOBO_AI_LLM_HOST", "http://localhost:11434")

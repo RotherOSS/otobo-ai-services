@@ -1,5 +1,4 @@
 from langchain.prompts import PromptTemplate
-from langchain.schema import Document
 from langchain.schema.runnable import RunnableLambda, RunnableParallel
 from langchain_core.output_parsers import StrOutputParser
 from loguru import logger
@@ -13,22 +12,14 @@ json_llm = get_model(use_ollama_json_format=True)
 
 
 def format_document_context(dictonary_docs):
-    docs = dictonary_docs.get("context", [])
-    if not docs:
+    texts = dictonary_docs.get("docs", [])
+    if not texts:
         return ""
     try:
-        if type(docs[0]) == str:
-            rv = "\n------\n".join(docs)
-        elif type(docs[0]) == Document:
-            rv = "\n----\n".join(doc.page_content for doc in docs)
-        else:
-            rv = "\n---\n".join(doc["page_content"] for doc in docs)
+        return "\n\n-----\n\n".join(texts)
     except Exception as e:
-        logger.error(
-            f"Fehler in format_document_context, docs wird unverändert zurückgegeben: {e}"
-        )
-        rv = dictonary_docs
-    return rv
+        logger.error(f"Error in format_document_context: {e}")
+        return dictonary_docs
 
 
 def get_question(json_in):
@@ -40,14 +31,14 @@ prompt_template = prompt_path.read_text(encoding="utf-8")
 
 rag_chain_prompt = PromptTemplate(
     template=prompt_template,
-    input_variables=["question", "context"],
+    input_variables=["question", "docs"],
 )
 
 
 rag_chain = (
     RunnableParallel(
         {
-            "context": RunnableLambda(format_document_context),
+            "docs": RunnableLambda(format_document_context),
             "question": RunnableLambda(get_question),
         }
     )

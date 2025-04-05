@@ -59,7 +59,7 @@ def generate(state: GraphState):
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(5))
 def evaluate(state: GraphState):
     """
-    Generate answer using RAG on retrieved documents
+    Evaluate answer by RAG based on retrieved documents
     """
     if "do_scoring" in state and state["do_scoring"]:
         logger.info("---Evaluating---")
