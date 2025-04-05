@@ -4,14 +4,7 @@ FROM python:3.12-slim
 # Install build tools and useful Debian packages
 RUN apt-get update \
     && apt-get -y --no-install-recommends install \
-    build-essential \
-    g++ \
-    less \
-    nano \
-    rsync \
-    telnet \
     tree \
-    screen \
     vim \
     curl \
     && rm -rf /var/lib/apt/lists/*

@@ -1,15 +1,11 @@
-from typing import Any, Dict, List, Optional
-
 from fastapi import HTTPException
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain_ollama import ChatOllama, OllamaEmbeddings
-from langchain.schema import Document
 from loguru import logger
 
 from src.settings import AppSettings
 from src.db import get_pg_pool
-from src.data_models.ticket import Ticket
 from src.data_models.ingest import IngestInput, IngestInputBatch
 from src.data_models.retrieve import QueryInput
 
@@ -72,7 +68,6 @@ async def query_embeddings(retrieve: QueryInput):
         results = await vector_store.asimilarity_search(query=retrieve.query_text, k=retrieve.n_results)
 
         if retrieve.retrieve_fulltext:
-            # Extract unique fulltext IDs
             fulltext_ids = {doc.metadata.get("fulltext_id") for doc in results if doc.metadata.get("fulltext_id")}
             if fulltext_ids:
                 pool = get_pg_pool()
@@ -194,40 +189,4 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
 
     except Exception as e:
         logger.error(f"Error inserting embeddings: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@logger.catch(reraise=True)
-async def delete_embedding(id: str):
-    try:
-        vector_store = get_vectorstore(with_embedding=False)
-        vector_store.delete(ids=[id])
-        return id
-    except Exception as e:
-        logger.error(f"Error deleting embedding: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@logger.catch(reraise=True)
-async def delete_embeddings(
-    ids: Any | None = None,
-    where: Optional[Dict] = None,
-):
-    if not ids and not where:
-        raise HTTPException(status_code=400, detail="Either ids or where condition must be provided")
-
-    try:
-        vector_store = get_vectorstore(with_embedding=False)
-
-        delete_kwargs = {}
-        if ids:
-            delete_kwargs["ids"] = ids
-        if where:
-            delete_kwargs["where"] = where
-
-        vector_store.delete(**delete_kwargs)
-
-        return {"deleted": delete_kwargs}
-    except Exception as e:
-        logger.error(f"Error deleting embeddings: {e}")
         raise HTTPException(status_code=500, detail=str(e))

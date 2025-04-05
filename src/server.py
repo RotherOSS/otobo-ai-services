@@ -1,22 +1,18 @@
 import os
 from contextlib import asynccontextmanager
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, List
 
-from fastapi import Body, Depends, FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.responses import RedirectResponse
 from langchain_core.documents import Document
-from langchain_core.messages import BaseMessage
 from langchain_core.runnables.config import RunnableConfig
 from langserve import add_routes
 from loguru import logger
-from pydantic import BaseModel
 
 from src.auth import get_api_key
 from src.settings import AppSettings
 from src.llm_embedding_utils import (
     query_embeddings,
-    delete_embedding,
-    delete_embeddings,
     get_heartbeat,
     put_embeddings,
     put_embeddings_batch,
@@ -24,8 +20,6 @@ from src.llm_embedding_utils import (
 from src.data_models.ingest import IngestInput, IngestInputBatch
 from src.data_models.retrieve import QueryInput
 import importlib
-import pkgutil
-from fastapi.routing import APIRouter
 from src.db import init_pg_pool, close_pg_pool
 
 settings = AppSettings()
@@ -33,7 +27,6 @@ settings = AppSettings()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    ###  before the application starts ###
     os.makedirs("./data/log", exist_ok=True)
 
     logger.add(
@@ -46,9 +39,7 @@ async def lifespan(app: FastAPI):
     logger.success(f"Starting server with loglevel: {settings.OTOBO_AI_LOG_LEVEL}")
     await init_pg_pool(settings.OTOBO_AI_PG_DSN)
 
-    ### after the application has finished ###
     yield
-    # watchfolder.stop()
     await close_pg_pool()
     logger.success("Server has shut down gracefully.")
 
@@ -69,12 +60,10 @@ def register_rags(app: FastAPI):
                 logger.warning(f"Missing graph.py or io_models.py in {entry}")
                 continue
 
-            # Load graph module
             graph_spec = importlib.util.spec_from_file_location(f"rags.{entry}.graph", graph_path)
             graph_module = importlib.util.module_from_spec(graph_spec)
             graph_spec.loader.exec_module(graph_module)
 
-            # Load io_models module
             io_spec = importlib.util.spec_from_file_location(f"rags.{entry}.io_models", io_path)
             io_module = importlib.util.module_from_spec(io_spec)
             io_spec.loader.exec_module(io_module)
@@ -145,11 +134,7 @@ register_rags(app)
 @app.post(
     "/otobo-ai/embedding/query/",
     name="Query Embedding",
-    description="""Get embedded data by text-search.\n
-    query_texts - The document texts to get the closes neighbors of. Optional. \n
-    n_results - The number of neighbors to return for each query_embedding or query_texts. Optional.
-    include - A list of what to include in the results. Can contain "embeddings", "metadatas", "documents", "distances".
-    Ids are always included. Defaults to ["metadatas", "documents"]. Optional.""",
+    description="Get embedded data by text-search.",
     dependencies=[Depends(get_api_key)],
 )
 async def post_query(retrieve: QueryInput):
@@ -174,31 +159,6 @@ async def put(embeds: IngestInput):
 )
 async def put(embeds: IngestInputBatch):
     return await put_embeddings_batch(embeds)
-
-
-@app.delete(
-    "/otobo-ai/embedding/delete/{id}",
-    name="Delete",
-    description="Delete embedded data by id.",
-    dependencies=[Depends(get_api_key)],
-)
-async def delete(id: str):
-    return await delete_embedding(id)
-
-
-@app.post(
-    "/otobo-ai/embedding/delete-many/",
-    name="Delete Many",
-    description="Delete embedded data by filter.\nAt least one of the optional parameters 'ids', 'where' must be specified.",
-)
-async def delete_many(
-    ids: Any | None = None,
-    where: Optional[Dict] = None,
-):
-    return await delete_embeddings(
-        ids=ids,
-        where=where,
-    )
 
 
 if __name__ == "__main__":

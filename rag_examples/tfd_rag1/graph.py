@@ -8,7 +8,7 @@ from typing_extensions import TypedDict
 
 from src.settings import AppSettings
 from src.rags.tfd_rag1.chains import rag_chain, eval_chain
-from src.llm_embedding_utils import get_vectorstore, query_embeddings
+from src.llm_embedding_utils import query_embeddings
 from src.data_models.retrieve import QueryInput
 
 settings = AppSettings()

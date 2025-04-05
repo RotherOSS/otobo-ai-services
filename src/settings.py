@@ -4,13 +4,13 @@ from dotenv import load_dotenv
 
 class AppSettings:
     """
-    `AppSetting` class, the one and only source to get your enviroment variables and predefined parameters.
+    `AppSetting` class, the one and only source to get your environment variables and predefined parameters.
 
     Will call os.getenv(), not (!) static, create an instance first.
     ### Example
 
     ```python
-    from src.data_models.AppSettings import AppSettings
+    from src.settings import AppSettings
 
     settings = AppSettings()
 
@@ -18,16 +18,8 @@ class AppSettings:
     ```
     """
 
-    true_values = [
-        "true",
-        "1",
-        "t",
-        "y",
-        "yes",
-    ]
-
     def __init__(self):
-        load_dotenv()  # load enviroment variables once
+        load_dotenv()
         self.OTOBO_AI_API_KEY = os.getenv("OTOBO_AI_API_KEY")
         self.OTOBO_AI_HOST = os.getenv("OTOBO_AI_HOST", "0.0.0.0")
         self.OTOBO_AI_PORT = int(os.getenv("OTOBO_AI_PORT", "8080"))
@@ -73,6 +65,3 @@ class AppSettings:
         """checks if all necesarry varables are set"""
         if os.getenv("OTOBO_AI_API_KEY") is None:
             raise ValueError("Enviroment variable 'OTOBO_AI_API_KEY' must be set.")
-
-    def getenv(self, key: str, default=None):
-        return os.getenv(key, default)
