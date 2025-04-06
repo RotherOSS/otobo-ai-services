@@ -1,6 +1,6 @@
 ## Introduction
 
-This project provides a modular, standalone RAG (Retrieval-Augmented Generation) hosting service designed to integrate with the OTOBO ticket system or any other external system. It enables easy experimentation and deployment of multiple custom RAG pipelines. Each RAG module defines its own retrieval/generation logic and API schema, loaded dynamically at runtime.
+This project provides a modular, standalone RAG (Retrieval-Augmented Generation) hosting service designed to integrate with the OTOBO ticket system. It enables easy experimentation and deployment of multiple custom RAG pipelines. Each RAG module defines its own retrieval/generation logic and API schema, loaded dynamically at runtime.
 
 The system uses **LangGraph**, **LangChain**, and **ChromaDB** to support flexible embedding and LLM-powered generation. It exposes a REST API via **FastAPI** for ingesting content and interacting with configured RAGs.
 
@@ -13,8 +13,8 @@ Clone the repository and set up the environment using Docker Compose:
 ### 1. Clone the Repository
 
 ```bash
-git clone https://your.repo.url/here.git
-cd your-project
+git clone git@github.com:RotherOSS/otobo-ai.git
+cd otobo-ai
 ```
 
 ### 2. (Optional) Define Your Own RAGs
@@ -76,8 +76,9 @@ Ingest a **batch** of data items for embedding.
     [{ "type": "question", "text": "What is OTOBO?" }],
     [{ "type": "answer", "text": "A ticketing system." }]
   ],
-  "embed_content_types": ["question", "answer"],
-  "store_fulltext": false
+  "embed_content_types": ["question"],
+  "store_fulltext": false,
+  "fulltext_types": ["answer"]
 }
 ```
 
@@ -97,8 +98,12 @@ Run the full RAG process (retrieve and generate).
 
 ```json
 {
-  "question": "What is OTOBO?",
-  "do_scoring": false
+  "input": {
+    "question": "What is OTOBO?",
+    "do_scoring": true
+  },
+  "config": {},
+  "kwargs": {}
 }
 ```
 
@@ -106,13 +111,25 @@ Run the full RAG process (retrieve and generate).
 
 ```json
 {
-  "question": "What is OTOBO?",
-  "generation": "OTOBO is an open-source ticketing system.",
-  "score": null
+  "output": {
+    "question": "What is OTOBO?",
+    "generation": "OTOBO is an open-source ticketing system.",
+    "score": 0.87
+  },
+  "metadata": {
+    "run_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "feedback_tokens": [
+      {
+        "key": "score-feedback",
+        "token_url": "https://feedback.example.com/token/3fa85f64",
+        "expires_at": "2025-04-06T08:05:36.868Z"
+      }
+    ]
+  }
 }
 ```
 
-Each RAG can define its own input/output models, but this is the expected default format.
+Each RAG can define its own input/output models, but this is the expected default format. Note that only the `input` and `output` fields are relevant for usage within OTOBO, the other fields are automatically provided by **LangServe**
 
 ---
 
