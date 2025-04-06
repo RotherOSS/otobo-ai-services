@@ -22,9 +22,12 @@ from src.data_models.retrieve import QueryInput
 import importlib
 from src.db import init_pg_pool, close_pg_pool
 
+# Load app settings from environment or config
 settings = AppSettings()
 
 
+# Define app lifecycle behavior: setup logging and DB connection at startup,
+# and ensure graceful shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     os.makedirs("./data/log", exist_ok=True)
@@ -39,11 +42,15 @@ async def lifespan(app: FastAPI):
     logger.success(f"Starting server with loglevel: {settings.OTOBO_AI_LOG_LEVEL}")
     await init_pg_pool(settings.OTOBO_AI_PG_DSN)
 
-    yield
+    yield  # Main app runs here
+
     await close_pg_pool()
     logger.success("Server has shut down gracefully.")
 
 
+# Dynamically load all RAG definitions from the `rags/` folder.
+# For each valid RAG submodule (must contain graph.py and io_models.py),
+# routes are added automatically under `/otobo-ai/{rag_name}`
 def register_rags(app: FastAPI):
     base_dir = os.path.join(os.path.dirname(__file__), "rags")
 
@@ -60,18 +67,22 @@ def register_rags(app: FastAPI):
                 logger.warning(f"Missing graph.py or io_models.py in {entry}")
                 continue
 
+            # Dynamically import graph.py
             graph_spec = importlib.util.spec_from_file_location(f"rags.{entry}.graph", graph_path)
             graph_module = importlib.util.module_from_spec(graph_spec)
             graph_spec.loader.exec_module(graph_module)
 
+            # Dynamically import io_models.py
             io_spec = importlib.util.spec_from_file_location(f"rags.{entry}.io_models", io_path)
             io_module = importlib.util.module_from_spec(io_spec)
             io_spec.loader.exec_module(io_module)
 
+            # Ensure required types exist
             if not all(hasattr(io_module, attr) for attr in ("RAGInput", "RAGOutput")):
                 logger.warning(f"io_models.py in {entry} missing RAGInput or RAGOutput")
                 continue
 
+            # Add the RAG route to the FastAPI app
             add_routes(
                 app,
                 graph_module.graph.with_config(config),
@@ -84,6 +95,7 @@ def register_rags(app: FastAPI):
             logger.error(f"Failed to load graph: {e}")
 
 
+# FastAPI app with configured metadata and lifecycle
 app = FastAPI(
     title=settings.fastapi_title,
     version=settings.fastapi_version,
@@ -91,6 +103,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Langfuse callback setup: if keys are configured, use it for observability.
 config = None
 if settings.OTOBO_AI_LANGFUSE_SK:
     from langfuse.callback import CallbackHandler
@@ -112,11 +125,13 @@ else:
 ###################
 ### open routes ###
 ###################
+
+# Redirect root path to the interactive docs
 @app.get("/")
 async def redirect_root_to_docs():
     return RedirectResponse("/docs")
 
-
+# Simple DB heartbeat check
 @app.get(
     "/otobo-ai/db/heartbeat",
     description="Checks whether the database is reachable.",
@@ -128,9 +143,12 @@ async def heartbeat():
 #####################
 ### secure routes ###
 #####################
+
+# Registers RAGs as secure endpoints
 register_rags(app)
 
 
+# Embedding query endpoint — performs similarity search
 @app.post(
     "/otobo-ai/embedding/query/",
     name="Query Embedding",
@@ -141,6 +159,7 @@ async def post_query(retrieve: QueryInput):
     return await query_embeddings(retrieve)
 
 
+# Ingest a single item for embedding
 @app.put(
     "/otobo-ai/embedding/ingest/",
     name="Ingest",
@@ -151,6 +170,7 @@ async def put(embeds: IngestInput):
     return await put_embeddings(embeds)
 
 
+# Ingest a batch of items for embedding
 @app.put(
     "/otobo-ai/embedding/ingest-many/",
     name="Ingest Many",
@@ -160,7 +180,7 @@ async def put(embeds: IngestInput):
 async def put(embeds: IngestInputBatch):
     return await put_embeddings_batch(embeds)
 
-
+# Entry point for running without a separate ASGI server
 if __name__ == "__main__":
     import uvicorn
 

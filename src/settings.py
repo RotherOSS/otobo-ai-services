@@ -54,7 +54,7 @@ class AppSettings:
         self.OTOBO_AI_PG_USER = os.getenv("OTOBO_AI_PG_USER", "otobo_ai")
         self.OTOBO_AI_PG_PW = os.getenv("OTOBO_AI_PG_PW")
         self.OTOBO_AI_PG_DSN = (f"postgresql://{self.OTOBO_AI_PG_USER}:{self.OTOBO_AI_PG_PW}"
-                             f"@{self.OTOBO_AI_PG_HOST}:{self.OTOBO_AI_PG_PORT}/{self.OTOBO_AI_PG_DB}")
+                                f"@{self.OTOBO_AI_PG_HOST}:{self.OTOBO_AI_PG_PORT}/{self.OTOBO_AI_PG_DB}")
 
         self.embedding_chunk_size = 1100
         self.embedding_chunk_overlap = 100
@@ -62,6 +62,5 @@ class AppSettings:
         self.check_envs()
 
     def check_envs(self):
-        """checks if all necesarry varables are set"""
         if os.getenv("OTOBO_AI_API_KEY") is None:
             raise ValueError("Enviroment variable 'OTOBO_AI_API_KEY' must be set.")

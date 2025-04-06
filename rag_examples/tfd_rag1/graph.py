@@ -14,6 +14,7 @@ from src.data_models.retrieve import QueryInput
 settings = AppSettings()
 
 
+# Shared state format passed between steps in the workflow
 class GraphState(TypedDict):
     do_scoring: bool | None
     question: str
@@ -25,6 +26,7 @@ class GraphState(TypedDict):
     score: float | None
 
 
+# Creates a retrieval function for the given input source and maps results to output key
 def retrieve_function_generator(query_input: QueryInput, output: str):
     @logger.catch(reraise=True)
     @retry(stop=stop_after_attempt(3), wait=wait_fixed(5))
@@ -32,6 +34,8 @@ def retrieve_function_generator(query_input: QueryInput, output: str):
         logger.info(f"---Retrieving from {query_input.type}---")
         query_input.query_text = state["question"]
         results = await query_embeddings(query_input)
+
+        # Decide what to return: full text or just page content
         if query_input.retrieve_fulltext:
             results = [result.metadata["fulltext"] for result in results]
         else:
@@ -41,72 +45,46 @@ def retrieve_function_generator(query_input: QueryInput, output: str):
     return retrieve
 
 
+# Generates a response from retrieved content
 @logger.catch(reraise=True)
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(5))
 def generate(state: GraphState):
-    """
-    Generate answer using RAG on retrieved documents
-    """
     logger.info("---Generating---")
-
     generation = rag_chain.invoke(state)
-    return {
-        "generation": generation,
-    }
+    return {"generation": generation}
 
 
+# Scores the generated output (if requested)
 @logger.catch(reraise=True)
 @retry(stop=stop_after_attempt(3), wait=wait_fixed(5))
 def evaluate(state: GraphState):
-    """
-    Evaluate answer by RAG based on retrieved documents
-    """
     if "do_scoring" in state and state["do_scoring"]:
         logger.info("---Evaluating---")
-
         score = eval_chain.invoke(state)
-        return {
-            "score": score,
-        }
+        return {"score": score}
 
 
+# Define the full graph-based workflow
 workflow = StateGraph(GraphState)
 
-retrieve_input = QueryInput(
-    query_text="",
-    type="faq",
-    retrieve_fulltext=True,
-    n_results=3
-)
-workflow.add_node("retrieve_faq", retrieve_function_generator(retrieve_input, "faqs"))
+# Define multiple retrieval steps for different sources
+workflow.add_node("retrieve_faq", retrieve_function_generator(
+    QueryInput(query_text="", type="faq", retrieve_fulltext=True, n_results=3), "faqs"))
 
-retrieve_input = QueryInput(
-    query_text="",
-    type="documentation",
-    retrieve_fulltext=False,
-    n_results=3
-)
-workflow.add_node("retrieve_documentation", retrieve_function_generator(retrieve_input, "docs"))
+workflow.add_node("retrieve_documentation", retrieve_function_generator(
+    QueryInput(query_text="", type="documentation", retrieve_fulltext=False, n_results=3), "docs"))
 
-retrieve_input = QueryInput(
-    query_text="",
-    type="ticket_chunks",
-    retrieve_fulltext=False,
-    n_results=3
-)
-workflow.add_node("retrieve_full_ticket_chunks", retrieve_function_generator(retrieve_input, "ticket_chunks"))
+workflow.add_node("retrieve_full_ticket_chunks", retrieve_function_generator(
+    QueryInput(query_text="", type="ticket_chunks", retrieve_fulltext=False, n_results=3), "ticket_chunks"))
 
-retrieve_input = QueryInput(
-    query_text="",
-    type="ticket_pairs",
-    retrieve_fulltext=True,
-    n_results=2
-)
-workflow.add_node("retrieve_ticket_pairs", retrieve_function_generator(retrieve_input, "ticket_pairs"))
+workflow.add_node("retrieve_ticket_pairs", retrieve_function_generator(
+    QueryInput(query_text="", type="ticket_pairs", retrieve_fulltext=True, n_results=2), "ticket_pairs"))
 
+# Generation and optional evaluation step
 workflow.add_node("generate", generate)
 workflow.add_node("evaluate", evaluate)
 
+# Define edges (execution order)
 workflow.add_edge(START, "retrieve_faq")
 workflow.add_edge(START, "retrieve_documentation")
 workflow.add_edge(START, "retrieve_full_ticket_chunks")
@@ -119,4 +97,5 @@ workflow.add_edge("generate", "evaluate")
 workflow.add_edge("generate", END)
 workflow.add_edge("evaluate", END)
 
+# Compile into executable graph
 graph = workflow.compile()

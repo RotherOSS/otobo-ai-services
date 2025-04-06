@@ -13,6 +13,7 @@ llm = get_model()
 json_llm = get_model(use_ollama_json_format=True)
 
 
+# Creates a formatter function to turn lists of text into a single block
 def context_formatting_func_generator(key):
     def inner(dictonary_docs):
         texts = dictonary_docs.get(key, [])
@@ -21,15 +22,17 @@ def context_formatting_func_generator(key):
         try:
             return "\n\n-----\n\n".join(texts)
         except Exception as e:
-            logger.error(f"Error in format_document_context for key '{key}': {e}")
+            logger.error(f"Error formatting context for '{key}': {e}")
             return dictonary_docs
     return inner
 
 
+# Extracts the question from the shared state
 def get_question(dict_in):
     return dict_in["question"]
 
 
+# Load RAG prompt from file
 prompt_path = Path(__file__).parent / "prompts" / "rag_prompt.txt"
 prompt_template = prompt_path.read_text(encoding="utf-8")
 
@@ -38,7 +41,11 @@ rag_chain_prompt = PromptTemplate(
     input_variables=["question", "faqs", "docs", "ticket_chunks", "ticket_pairs"],
 )
 
-
+# Defines the main generation chain:
+# 1. Formats context from retrieved sources
+# 2. Passes it into the prompt
+# 3. Sends to model
+# 4. Parses text output
 rag_chain = (
     RunnableParallel(
         {
@@ -55,6 +62,7 @@ rag_chain = (
 )
 
 
+# Defines expected structure of evaluation output
 class EvalOutput(BaseModel):
     reasoning: str
     faithfulness: int
@@ -63,9 +71,9 @@ class EvalOutput(BaseModel):
     solved: bool
 
 
+# Load evaluation prompt
 prompt_path = Path(__file__).parent / "prompts" / "eval_prompt.txt"
 prompt_template = prompt_path.read_text(encoding="utf-8")
-
 
 eval_chain_prompt = PromptTemplate(
     template=prompt_template,
@@ -73,28 +81,28 @@ eval_chain_prompt = PromptTemplate(
 )
 
 
+# Parses and validates model output as JSON
 def structure_output(llm_output):
-    validated_response = None
     try:
         response_data = json.loads(llm_output)
-        # Validate with Pydantic
-        validated_response = EvalOutput(**response_data)
+        return EvalOutput(**response_data)
     except (json.JSONDecodeError, ValueError) as e:
         logger.error(f"Invalid format: {e}")
-    return validated_response
+        return None
 
 
+# Combines numeric scores from evaluation (if answer is marked as solved)
 def combine_score(validated_response):
     if not validated_response or not validated_response.solved:
         return 0
-    else:
-        return (
-                validated_response.faithfulness +
-                validated_response.completeness +
-                validated_response.friendliness
-        ) / 4 / 3
+    return (
+        validated_response.faithfulness +
+        validated_response.completeness +
+        validated_response.friendliness
+    ) / 4 / 3
 
 
+# Full evaluation chain: prompt → model → JSON validation → score calculation
 eval_chain = (
     eval_chain_prompt
     | llm
