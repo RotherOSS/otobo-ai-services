@@ -54,8 +54,7 @@ Ingest a **single** data item for embedding.
   "type": "documentation",
   "content": [[{ "type": "text", "text": "your content here" }]],
   "embed_content_types": ["text"],
-  "store_fulltext": true,
-  "fulltext_types": ["text"]
+  "store_fulltext": false
 }
 ```
 
@@ -73,11 +72,13 @@ Ingest a **batch** of data items for embedding.
 {
   "type": "faq",
   "content": [
-    [{ "type": "question", "text": "What is OTOBO?" }],
-    [{ "type": "answer", "text": "A ticketing system." }]
+    [{ "type": "question", "text": "What is OTOBO?" },
+     { "type": "answer", "text": "A ticketing system." }],
+    [{ "type": "question", "text": "In what language is OTOBO written?" },
+     { "type": "answer", "text": "In Perl." }]
   ],
   "embed_content_types": ["question"],
-  "store_fulltext": false,
+  "store_fulltext": true,
   "fulltext_types": ["answer"]
 }
 ```
