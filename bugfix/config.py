@@ -4,6 +4,7 @@
 
 
 from collections import ChainMap
+from os import getenv
 from typing import Any, Optional, Sequence, cast
 
 from langchain_core.callbacks import (
@@ -16,7 +17,6 @@ from langchain_core.runnables import RunnableConfig
 from langchain_core.runnables.config import (
     CONFIG_KEYS,
     COPIABLE_KEYS,
-    DEFAULT_RECURSION_LIMIT,
     var_child_runnable_config,
 )
 
@@ -30,6 +30,8 @@ from langgraph.constants import (
     NS_END,
     NS_SEP,
 )
+
+DEFAULT_RECURSION_LIMIT = int(getenv("LANGGRAPH_DEFAULT_RECURSION_LIMIT", "25"))
 
 
 def recast_checkpoint_ns(ns: str) -> str:
@@ -310,14 +312,12 @@ def ensure_config(*configs: Optional[RunnableConfig]) -> RunnableConfig:
                 # BUGFIX: callbacks are overwritten
                 if k == "callbacks" and isinstance(empty[k], list):
                     empty[k] = empty[k] + v
-                else:
-                    empty[k] = v  # type: ignore[literal-required]
                 # END BUGFIX
 
                 # if k == CONF:
                 #     empty[k] = cast(dict, v).copy()
-                # else:
-                #     empty[k] = v  # type: ignore[literal-required]
+                else:
+                    empty[k] = v  # type: ignore[literal-required]
         for k, v in config.items():
             if _is_not_empty(v) and k not in CONFIG_KEYS:
                 empty[CONF][k] = v
