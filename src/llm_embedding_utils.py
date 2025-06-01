@@ -87,7 +87,7 @@ async def query_embeddings(retrieve: QueryInput):
 
     except Exception as e:
         logger.error(f"Error asynch. querying embeddings: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return {"success": False, "error": str(e)}
 
 
 @logger.catch(reraise=True)
@@ -134,10 +134,11 @@ async def put_embeddings(insert_input: IngestInput):
 
             embed_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
             await embed_store.aadd_documents(all_splits)
+        return {"success": True}
 
     except Exception as e:
         logger.error(f"Error inserting embeddings: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return {"success": False, "error": str(e)}
 
 
 @logger.catch(reraise=True)
@@ -195,7 +196,8 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
 
         embed_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
         await embed_store.aadd_documents(embed_docs)
+        return {"success": True}
 
     except Exception as e:
         logger.error(f"Error inserting embeddings: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        return {"success": False, "error": str(e)}

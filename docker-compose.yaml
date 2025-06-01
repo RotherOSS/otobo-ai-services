@@ -18,8 +18,8 @@ services:
       - ./rags:/code/src/rags
     command: >
       uvicorn src.server:app
-      --host 0.0.0.0
-      --port 8080
+      --host ${OTOBO_AI_HOST}
+      --port ${OTOBO_AI_PORT}
       --loop asyncio
 
   postgres:

@@ -150,7 +150,7 @@ register_rags(app)
 
 # Embedding query endpoint — performs similarity search
 @app.post(
-    "/otobo-ai/embedding/query/",
+    "/otobo-ai/embedding/query",
     name="Query Embedding",
     description="Get embedded data by text-search.",
     dependencies=[Depends(get_api_key)],
@@ -161,7 +161,7 @@ async def post_query(retrieve: QueryInput):
 
 # Ingest a single item for embedding
 @app.put(
-    "/otobo-ai/embedding/ingest/",
+    "/otobo-ai/embedding/ingest",
     name="Ingest",
     description="Ingest an item of data for embedding.",
     dependencies=[Depends(get_api_key)],
@@ -172,7 +172,7 @@ async def put(embeds: IngestInput):
 
 # Ingest a batch of items for embedding
 @app.put(
-    "/otobo-ai/embedding/ingest-many/",
+    "/otobo-ai/embedding/ingest-many",
     name="Ingest Many",
     description="Ingest a list of items of data for embedding.",
     dependencies=[Depends(get_api_key)],
@@ -180,8 +180,7 @@ async def put(embeds: IngestInput):
 async def put(embeds: IngestInputBatch):
     return await put_embeddings_batch(embeds)
 
-# Entry point for running without a separate ASGI server
+# Entry point for running locally without docker
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(app, host=settings.OTOBO_AI_HOST, port=settings.OTOBO_AI_PORT)
