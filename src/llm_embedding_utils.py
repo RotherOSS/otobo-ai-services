@@ -33,6 +33,42 @@ def get_vectorstore(with_embedding: bool = True, collection_name: str = settings
         persist_directory=settings.OTOBO_AI_CHROMA_DIR  # Local dir for vector DB persistence
     )
 
+@logger.catch(reraise=True)
+async def purge_collection(with_embedding: bool = True, collection_name: str = settings.OTOBO_AI_CHROMA_DEF_COL_NAME):
+    # Returns a Chroma vector store instance, optionally attaching an embedding function
+    db_embedding = get_embeddingsmodel() if with_embedding else None
+
+    vector_store = Chroma(
+        collection_name=collection_name,
+        embedding_function=db_embedding,
+        persist_directory=settings.OTOBO_AI_CHROMA_DIR  # Local dir for vector DB persistence
+    )
+
+    logger.info(f"Purge: {collection_name}")
+    
+    vector_store._client.delete_collection(collection_name)
+
+    return { "success": True  }
+
+@logger.catch(reraise=True)
+async def purge_vectorstore(with_embedding: bool = True):
+    # Returns a Chroma vector store instance, optionally attaching an embedding function
+    db_embedding = get_embeddingsmodel() if with_embedding else None
+
+    collections = [ "faq", "ticket_pairs", "ticket_chunks", "doc"  ]
+    for collection in collections:
+
+        await purge_collection( with_embedding=with_embedding, collection_name=collection )
+
+    # postgres
+    
+    pool = get_pg_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("DELETE FROM fulltext")
+
+    return { "success": True  }
+
+    
 
 @logger.catch(reraise=True)
 def get_model(use_ollama_json_format: bool = False):

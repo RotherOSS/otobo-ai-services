@@ -16,6 +16,8 @@ from src.llm_embedding_utils import (
     get_heartbeat,
     put_embeddings,
     put_embeddings_batch,
+    purge_collection,
+    purge_vectorstore,
 )
 from src.data_models.ingest import IngestInput, IngestInputBatch
 from src.data_models.retrieve import QueryInput
@@ -169,6 +171,17 @@ async def post_query(retrieve: QueryInput):
 async def put(embeds: IngestInput):
     return await put_embeddings(embeds)
 
+# purge the whole vector store + postgres
+@app.delete(
+    "/otobo-ai/embedding/purge",
+    name="Ingest Purge",
+    description="Purge the vector store.",
+    dependencies=[Depends(get_api_key)],
+)
+async def purge():
+    logger.error(f"purge all");
+    return await purge_vectorstore(True)
+
 
 # Ingest a batch of items for embedding
 @app.put(
@@ -177,7 +190,7 @@ async def put(embeds: IngestInput):
     description="Ingest a list of items of data for embedding.",
     dependencies=[Depends(get_api_key)],
 )
-async def put(embeds: IngestInputBatch):
+async def put(embeds: IngestInputBatch):    
     return await put_embeddings_batch(embeds)
 
 # Entry point for running locally without docker
