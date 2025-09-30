@@ -20,6 +20,7 @@ class GraphState(TypedDict):
     generation: str | None
     docs: List[Document] | None
     collection_name: str | None
+    lang: str | None
 
 
 @logger.catch(reraise=True)
@@ -30,13 +31,19 @@ async def retrieve(state: GraphState):
     This pulls relevant documents for RAG input.
     Retries up to 3 times on failure.
     """
+
     query_input = QueryInput(
         query_text="",
         type="documentation",  # hardcoded collection type
         retrieve_fulltext=False,
         n_results=6
     )
+
+    lang = state["lang"]
+
     logger.info(f"---Retrieving from {query_input.type}---")
+    logger.info(f"---Lang {lang}---")
+
     query_input.query_text = state["question"]
     results = await query_embeddings(query_input)
 

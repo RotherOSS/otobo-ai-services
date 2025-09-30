@@ -33,6 +33,23 @@ def get_vectorstore(with_embedding: bool = True, collection_name: str = settings
         persist_directory=settings.OTOBO_AI_CHROMA_DIR  # Local dir for vector DB persistence
     )
 
+@logger.catch(reraise=True)
+async def purge_vectorstore(with_embedding: bool = True, collection_name: str = settings.OTOBO_AI_CHROMA_DEF_COL_NAME):
+    # Returns a Chroma vector store instance, optionally attaching an embedding function
+    db_embedding = get_embeddingsmodel() if with_embedding else None
+
+    vector_store = Chroma(
+        collection_name=collection_name,
+        embedding_function=db_embedding,
+        persist_directory=settings.OTOBO_AI_CHROMA_DIR  # Local dir for vector DB persistence
+    )
+
+    logger.error(f"Purge: {collection_name}")
+    
+    vector_store._client.delete_collection(collection_name)
+    # TODO: also purge postgres
+    return { "success": True  }
+    
 
 @logger.catch(reraise=True)
 def get_model(use_ollama_json_format: bool = False):

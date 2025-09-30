@@ -5,7 +5,7 @@ services:
     env_file:
       - .env
     ports:
-      - 8080:8080
+      - 8080:8000
     restart: on-failure:5
     depends_on:
       - postgres
@@ -21,6 +21,8 @@ services:
       --host ${OTOBO_AI_HOST}
       --port ${OTOBO_AI_PORT}
       --loop asyncio
+    networks: 
+    - otobo_default
 
   postgres:
     image: postgres:16-alpine
@@ -32,8 +34,14 @@ services:
       - postgres-data:/var/lib/postgresql/data
       - ./init-sql:/docker-entrypoint-initdb.d
     restart: unless-stopped
+    networks: 
+    - otobo_default
 
 volumes:
   chromadb-data:
 
   postgres-data:
+
+networks:
+  otobo_default:
+    external: true
