@@ -16,6 +16,7 @@ from src.llm_embedding_utils import (
     get_heartbeat,
     put_embeddings,
     put_embeddings_batch,
+    purge_collection,
     purge_vectorstore,
 )
 from src.data_models.ingest import IngestInput, IngestInputBatch
@@ -170,17 +171,28 @@ async def post_query(retrieve: QueryInput):
 async def put(embeds: IngestInput):
     return await put_embeddings(embeds)
 
-# purge the vector store
+# purge collection from the vector store
 @app.delete(
     "/otobo-ai/embedding/ingest",
     name="Ingest Delete",
+    description="Purge a collection from the vector store.",
+    dependencies=[Depends(get_api_key)],
+)
+async def delete_collection(embeds: IngestInput):
+    collection_name = embeds.type or settings.OTOBO_AI_CHROMA_DEF_COL_NAME
+    logger.error(f"purge {collection_name}");
+    return await purge_collection(True,collection_name)
+
+# purge the whole vector store + postgres
+@app.delete(
+    "/otobo-ai/embedding/purge",
+    name="Ingest Purge",
     description="Purge the vector store.",
     dependencies=[Depends(get_api_key)],
 )
-async def put(embeds: IngestInput):
-    collection_name = embeds.type or settings.OTOBO_AI_CHROMA_DEF_COL_NAME
-    logger.error(f"purge {collection_name}");
-    return await purge_vectorstore(True,collection_name)
+async def purge():
+    logger.error(f"purge all");
+    return await purge_vectorstore(True)
 
 
 # Ingest a batch of items for embedding
