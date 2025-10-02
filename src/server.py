@@ -18,6 +18,7 @@ from src.llm_embedding_utils import (
     put_embeddings_batch,
     purge_collection,
     purge_vectorstore,
+    delete_item_from_vectorstore,
 )
 from src.data_models.ingest import IngestInput, IngestInputBatch
 from src.data_models.retrieve import QueryInput
@@ -170,6 +171,18 @@ async def post_query(retrieve: QueryInput):
 )
 async def put(embeds: IngestInput):
     return await put_embeddings(embeds)
+
+# delete item from  collection by src
+@app.delete(
+    "/otobo-ai/embedding/delete",
+    name="Ingest Delete item",
+    description="Purge an item from a collection from the vector store.",
+    dependencies=[Depends(get_api_key)],
+)
+async def delete_item(embeds: IngestInput):
+    collection_name = embeds.type or settings.OTOBO_AI_CHROMA_DEF_COL_NAME
+    logger.error(f"delete {embeds.content[0].src} from {collection_name}");
+    return await delete_item_from_vectorstore(True, embeds.content[0].src, collection_name)
 
 # purge collection from the vector store
 @app.delete(

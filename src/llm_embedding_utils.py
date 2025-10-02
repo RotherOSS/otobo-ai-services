@@ -68,6 +68,52 @@ async def purge_vectorstore(with_embedding: bool = True):
 
     return { "success": True  }
 
+@logger.catch(reraise=True)
+async def delete_item_from_vectorstore(with_embedding: bool = True, src: str = "", collection_name: str = settings.OTOBO_AI_CHROMA_DEF_COL_NAME):
+    # Returns a Chroma vector store instance, optionally attaching an embedding function
+    db_embedding = get_embeddingsmodel() if with_embedding else None
+
+    vector_store = Chroma(
+        collection_name=collection_name,
+        embedding_function=db_embedding,
+        persist_directory=settings.OTOBO_AI_CHROMA_DIR  # Local dir for vector DB persistence
+    )
+
+    logger.error(f"Delete {src} from {collection_name}")
+
+    coll = vector_store.get()  # dict_keys(['ids', 'embeddings', 'documents', 'metadatas'])
+
+    ids_to_del = []
+    fulltext_ids_to_del = []
+
+    for idx in range(len(coll['ids'])):
+
+        id = coll['ids'][idx]
+        metadata = coll['metadatas'][idx]
+
+        if metadata['src'] == src:
+            ids_to_del.append(id)
+            
+        if 'fulltext_id' in metadata:
+            fulltext_ids_to_del.append(str(metadata['fulltext_id']))
+
+    logger.error(f"Deleteing from {collection_name} - {ids_to_del}")
+    
+    if ids_to_del:
+        vector_store._collection.delete(ids_to_del)
+
+        # postgres
+
+        if fulltext_ids_to_del:
+            fulltext_ids_in = ", ".join(fulltext_ids_to_del)    
+            logger.error(f"Deleteing from fulltext - {fulltext_ids_in}")
+    
+            pool = get_pg_pool()
+            async with pool.acquire() as conn:
+                await conn.execute(f"DELETE FROM fulltext WHERE id IN ( {fulltext_ids_in} )")
+
+    return { "success": True  }
+
     
 
 @logger.catch(reraise=True)
@@ -168,6 +214,9 @@ async def put_embeddings(insert_input: IngestInput):
                 for doc in all_splits:
                     doc.metadata["fulltext_id"] = fulltext_id
 
+            for doc in all_splits:            
+                doc.metadata["src"] = IngestInput.content.src
+
             embed_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
             await embed_store.aadd_documents(all_splits)
         return {"success": True}
@@ -227,6 +276,9 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
             if batch_input.store_fulltext and idx < len(fulltext_ids):
                 for doc in splits:
                     doc.metadata["fulltext_id"] = fulltext_ids[idx]
+
+            for doc in splits:
+                doc.metadata["src"] = content_list[0].src
 
             embed_docs.extend(splits)
 

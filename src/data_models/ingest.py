@@ -6,7 +6,7 @@ from pydantic import BaseModel
 class ContentItem(BaseModel):
     type: str  # e.g., "text", "markdown", etc. Can be used to route content processing.
     text: str  # The actual content to ingest.
-
+    src: Optional[str] = ""
 
 # Model for a single ingestion payload.
 class IngestInput(BaseModel):
