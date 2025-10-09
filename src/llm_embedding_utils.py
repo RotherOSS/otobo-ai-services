@@ -55,7 +55,7 @@ async def purge_vectorstore(with_embedding: bool = True):
     # Returns a Chroma vector store instance, optionally attaching an embedding function
     db_embedding = get_embeddingsmodel() if with_embedding else None
 
-    collections = [ "faq", "ticket_pairs", "ticket_chunks", "doc"  ]
+    collections = [ "faqs", "ticket_pairs", "ticket_chunks", "docs"  ]
     for collection in collections:
 
         await purge_collection( with_embedding=with_embedding, collection_name=collection )
@@ -99,6 +99,8 @@ async def query_embeddings(retrieve: QueryInput):
     # Main query endpoint: retrieves most similar documents from the vector store
     try:
         collection_name = retrieve.type or settings.OTOBO_AI_CHROMA_DEF_COL_NAME
+        
+        logger.info( f"query_embeddings from {collection_name}" );
         vector_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
         results = await vector_store.asimilarity_search(query=retrieve.query_text, k=retrieve.n_results)
 
@@ -182,6 +184,8 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
     # Ingests multiple items in a batch; supports storing fulltext and embedding selected fields
     try:
         collection_name = batch_input.type or settings.OTOBO_AI_CHROMA_DEF_COL_NAME
+        
+        logger.info( f"ingest into collection {collection_name}" );
         fulltext_ids = []
 
         # Optional fulltext storage
@@ -231,6 +235,7 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
             embed_docs.extend(splits)
 
         embed_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
+        logger.info( f"embedding into {collection_name} : {embed_docs}" )
         await embed_store.aadd_documents(embed_docs)
         return {"success": True}
 
