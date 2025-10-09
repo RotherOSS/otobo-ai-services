@@ -40,8 +40,6 @@ def retrieve_function_generator(query_input: QueryInput, output: str):
             results = [result.metadata["fulltext"] for result in results]
         else:
             results = [result.page_content for result in results]
-
-        logger.info(results)    
         return {output: results}
 
     return retrieve
