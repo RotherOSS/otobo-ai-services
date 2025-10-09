@@ -40,6 +40,9 @@ def retrieve_function_generator(query_input: QueryInput, output: str):
             results = [result.metadata["fulltext"] for result in results]
         else:
             results = [result.page_content for result in results]
+
+        logger.info(results)    
+
         return {output: results}
 
     return retrieve
@@ -60,6 +63,7 @@ def generate(state: GraphState):
 def evaluate(state: GraphState):
     if "do_scoring" in state and state["do_scoring"]:
         logger.info("---Evaluating---")
+        logger.info(state)
         score = eval_chain.invoke(state)
         return {"score": score}
 
@@ -69,10 +73,10 @@ workflow = StateGraph(GraphState)
 
 # Define multiple retrieval steps for different sources
 workflow.add_node("retrieve_faq", retrieve_function_generator(
-    QueryInput(query_text="", type="faq", retrieve_fulltext=True, n_results=3), "faqs"))
+    QueryInput(query_text="", type="faqs", retrieve_fulltext=True, n_results=3), "faqs"))
 
 workflow.add_node("retrieve_documentation", retrieve_function_generator(
-    QueryInput(query_text="", type="documentation", retrieve_fulltext=False, n_results=3), "docs"))
+    QueryInput(query_text="", type="docs", retrieve_fulltext=False, n_results=3), "docs"))
 
 workflow.add_node("retrieve_full_ticket_chunks", retrieve_function_generator(
     QueryInput(query_text="", type="ticket_chunks", retrieve_fulltext=False, n_results=3), "ticket_chunks"))
