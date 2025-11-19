@@ -8,7 +8,7 @@ version: '3.3'
 
 services:
   otobo-ai:
-    image: ${OTOBO_IMAGE_OTOBO_AI:-rotheross/otobo-ai:latest-11_0}
+    image: ${OTOBO_IMAGE_OTOBO_AI:-rotheross/otobo-ai:latest}
     restart: always
     depends_on:
       - postgres
