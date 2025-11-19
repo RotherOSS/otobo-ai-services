@@ -13,11 +13,11 @@ RUN apt-get update \
 WORKDIR /code
 
 # Copy requirements and install
-COPY requirements.txt ./
+COPY ./src/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source code
 COPY ./src ./src
 
 # BUGFIX: overwrite langgraph config file
-COPY ./bugfix/config.py /usr/local/lib/python3.12/site-packages/langgraph/utils/config.py
+COPY ./src/bugfix/config.py /usr/local/lib/python3.12/site-packages/langgraph/utils/config.py
