@@ -12,13 +12,15 @@ services:
     restart: always
     depends_on:
       - postgres
-#    environment:
+    env_file:
+      - ../.env
+#    environment: .env
 #      LANGFUSE_PUBLIC_KEY: ${OTOBO_AI_LANGFUSE_PK}
 #      LANGFUSE_SECRET_KEY: ${OTOBO_AI_LANGFUSE_SK}
 #      LANGFUSE_HOST: ${OTOBO_AI_LANGFUSE_HOST}
     volumes:
       - chromadb_data:/chroma
-      - ./rags:/code/src/rags
+      - ../rags:/code/src/rags
     command: >
       uvicorn src.server:app
       --host ${OTOBO_AI_HOST}
@@ -35,7 +37,7 @@ services:
       POSTGRES_PASSWORD: ${OTOBO_AI_PG_PW}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./src/init-sql:/docker-entrypoint-initdb.d
+      - ../src/init-sql:/docker-entrypoint-initdb.d
     restart: unless-stopped
     networks: 
     - otobo_default
