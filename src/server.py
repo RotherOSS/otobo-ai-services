@@ -18,9 +18,11 @@ from src.llm_embedding_utils import (
     put_embeddings_batch,
     purge_collection,
     purge_vectorstore,
+    delete_embeddings_by_id,
 )
 from src.data_models.ingest import IngestInput, IngestInputBatch
 from src.data_models.retrieve import QueryInput
+from src.data_models.delete import DeleteInput
 import importlib
 from src.db import init_pg_pool, close_pg_pool
 
@@ -192,6 +194,15 @@ async def purge():
 )
 async def put(embeds: IngestInputBatch):    
     return await put_embeddings_batch(embeds)
+
+@app.delete(
+    "/otobo-ai/embedding/delete",
+    name="Delete Embedding",
+    description="Delete embedding entries by source ID.",
+    dependencies=[Depends(get_api_key)],
+)
+async def delete_embedding(payload: DeleteInput):
+    return await delete_embeddings_by_id(payload)
 
 # Entry point for running locally without docker
 if __name__ == "__main__":
