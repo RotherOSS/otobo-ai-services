@@ -107,18 +107,20 @@ async def query_embeddings(retrieve: QueryInput):
 
         # Optionally enrich results with full text from the SQL database
         if retrieve.retrieve_fulltext:
-            fulltext_ids = {doc.metadata.get("fulltext_id") for doc in results if doc.metadata.get("fulltext_id")}
+            fulltext_ids = {doc.metadata.get("fulltext_source_id") for doc in results if doc.metadata.get("fulltext_source_id")}
             if fulltext_ids:
                 pool = get_pg_pool()
                 async with pool.acquire() as conn:
                     rows = await conn.fetch(
-                        f"SELECT id, text FROM fulltext WHERE id = ANY($1::int[]);",
+                        f"SELECT source_id, text FROM fulltext WHERE collection_name = $1 "
+                        f"AND source_id = ANY($2::text[]);",
+                        collection_name,
                         list(fulltext_ids)
                     )
-                id_to_text = {row["id"]: row["text"] for row in rows}
+                id_to_text = {row["source_id"]: row["text"] for row in rows}
 
                 for doc in results:
-                    ft_id = doc.metadata.get("fulltext_id")
+                    ft_id = doc.metadata.get("fulltext_source_id")
                     if ft_id in id_to_text:
                         doc.metadata["fulltext"] = id_to_text[ft_id]
 
@@ -147,11 +149,13 @@ async def put_embeddings(insert_input: IngestInput):
                 else:
                     fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in insert_input.content])
 
-                row = await conn.fetchrow(
-                    "INSERT INTO fulltext (text) VALUES ($1) RETURNING id",
+                await conn.fetchrow(
+                    "INSERT INTO fulltext (collection_name, source_id, text) VALUES ($1, $2, $3)",
+                    collection_name,
+                    insert_input.source_id,
                     fulltext
                 )
-                fulltext_id = row["id"]
+                fulltext_id = insert_input.source_id
 
             # Select content types to embed (configurable)
             if insert_input.embed_content_types:
@@ -170,7 +174,7 @@ async def put_embeddings(insert_input: IngestInput):
                 # Add fulltext reference to metadata if available
                 if fulltext_id is not None:
                     for doc in all_splits:
-                        doc.metadata["fulltext_id"] = fulltext_id
+                        doc.metadata["fulltext_source_id"] = fulltext_id
 
                 embed_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
                 vec_ids = await embed_store.aadd_documents(all_splits)
@@ -200,21 +204,32 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
         # Optional fulltext storage
             if batch_input.store_fulltext:
                 fulltext_texts = []
+                fulltext_ids = []
                 if batch_input.fulltext_types:
                     for content_set in batch_input.content:
                         fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in content_set.content_items if
                                                 item.type in batch_input.fulltext_types])
                         fulltext_texts.append(fulltext)
+                        fulltext_ids.append(content_set.source_id)
                 else:
                     for content_set in batch_input.content:
                         fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in content_set.content_items])
                         fulltext_texts.append(fulltext)
+                        fulltext_ids.append(content_set.source_id)
 
-                rows = await conn.fetch(
-                    "INSERT INTO fulltext (text) SELECT x FROM unnest($1::text[]) x RETURNING id",
-                    fulltext_texts
+                await conn.fetch(
+                    """
+                    INSERT INTO fulltext (collection_name, source_id, text)
+                    SELECT
+                        $1,
+                        s.source_id,
+                        s.text
+                    FROM unnest($2::text[], $3::text[]) AS s(source_id, text)
+                    """,
+                    collection_name,
+                    fulltext_ids,
+                    fulltext_texts,
                 )
-                fulltext_ids = [row["id"] for row in rows]
 
             # Prepare documents for embedding
             embed_docs = []
@@ -238,7 +253,7 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
                 # Attach correct fulltext ID to chunks
                 if batch_input.store_fulltext and idx < len(fulltext_ids):
                     for doc in splits:
-                        doc.metadata["fulltext_id"] = fulltext_ids[idx]
+                        doc.metadata["fulltext_source_id"] = fulltext_ids[idx]
 
                 embed_docs.extend(splits)
                 source_ids.extend([content_set.source_id] * len(splits))
@@ -338,7 +353,18 @@ async def delete_embeddings_by_id(delete: DeleteInput):
                 collection_name,
                 source_ids,
             )
-            logger.debug(f"deleted: {source_ids}, {vec_ids}")
+            logger.debug(f"deleted in source_vector_index_map: {source_ids}, {vec_ids}")
+
+            await conn.execute(
+                """
+                DELETE FROM fulltext
+                WHERE collection_name = $1
+                  AND source_id = ANY($2::text[])
+                """,
+                collection_name,
+                source_ids,
+            )
+            logger.debug(f"deleted in fulltext: {source_ids}, {vec_ids}")
         return {
             "success": True
         }
