@@ -9,7 +9,7 @@ class ContentItem(BaseModel):
 
 class ContentSet(BaseModel):
     source_id: str
-    content_items = List[ContentItem]
+    content_items: List[ContentItem]
 
 # Model for a single ingestion payload.
 class IngestInput(BaseModel):

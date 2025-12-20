@@ -101,7 +101,7 @@ async def query_embeddings(retrieve: QueryInput):
     try:
         collection_name = retrieve.type or settings.OTOBO_AI_CHROMA_DEF_COL_NAME
         
-        logger.info( f"query_embeddings from {collection_name}" );
+        logger.info( f"query_embeddings from {collection_name}" )
         vector_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
         results = await vector_store.asimilarity_search(query=retrieve.query_text, k=retrieve.n_results)
 
@@ -178,6 +178,7 @@ async def put_embeddings(insert_input: IngestInput):
                     "INSERT INTO source_vector_index_map (collection_name, source_id, vector_id) VALUES ($1, $2, $3)",
                     [(insert_input.type, insert_input.source_id, vid) for vid in vec_ids]
                 )
+                logger.debug(f"wrote to index map: {insert_input.source_id}, {[vid for vid in vec_ids]}")
         return {"success": True}
 
     except Exception as e:
@@ -337,6 +338,7 @@ async def delete_embeddings_by_id(delete: DeleteInput):
                 collection_name,
                 source_ids,
             )
+            logger.debug(f"deleted: {source_ids}, {vec_ids}")
         return {
             "success": True
         }
