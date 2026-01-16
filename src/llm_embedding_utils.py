@@ -49,6 +49,10 @@ async def purge_collection(with_embedding: bool = True, collection_name: str = s
     
     vector_store._client.delete_collection(collection_name)
 
+    pool = get_pg_pool()
+    async with pool.acquire() as conn:
+        await conn.execute("DELETE FROM source_vector_index_map WHERE collection_name = $1 ", collection_name);
+
     return { "success": True  }
 
 @logger.catch(reraise=True)
