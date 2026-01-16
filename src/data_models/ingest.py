@@ -7,6 +7,9 @@ class ContentItem(BaseModel):
     type: str  # e.g., "text", "markdown", etc. Can be used to route content processing.
     text: str  # The actual content to ingest.
 
+class ContentSet(BaseModel):
+    source_id: str
+    content_items: List[ContentItem]
 
 # Model for a single ingestion payload.
 class IngestInput(BaseModel):
@@ -14,6 +17,7 @@ class IngestInput(BaseModel):
     store_fulltext: bool = False  # If true, stores the raw input text in the database.
     fulltext_types: Optional[List[str]] = None  # Specifies which content types to store in full.
     embed_content_types: Optional[List[str]] = None  # Specifies which content types to embed for retrieval.
+    source_id: str = None
     content: List[ContentItem]  # A list of content items to ingest.
 
 
@@ -23,4 +27,4 @@ class IngestInputBatch(BaseModel):
     store_fulltext: bool = False
     fulltext_types: Optional[List[str]] = None
     embed_content_types: Optional[List[str]] = None
-    content: List[List[ContentItem]]  # List of lists of content items.
+    content: List[ContentSet]  # List of lists of content items.
