@@ -19,7 +19,10 @@ def get_embeddingsmodel():
     # Returns an embedding model instance using Ollama with config values
     return OllamaEmbeddings(
         base_url=settings.OTOBO_AI_LLM_HOST,
-        model=settings.OTOBO_AI_EMBEDDING_MODEL
+        model=settings.OTOBO_AI_EMBEDDING_MODEL,
+        client_kwargs= {
+            "headers" : {"Authorization": "Bearer " + settings.OTOBO_AI_LLM_API_KEY, "Content-Type" : "apllication/json"}
+        }
     )
 
 
@@ -82,7 +85,9 @@ def get_model(use_ollama_json_format: bool = False):
         base_url=settings.OTOBO_AI_LLM_HOST,
         model=settings.OTOBO_AI_LLM_MODEL,
         temperature=settings.OTOBO_AI_LLM_TEMPERATURE,
-        headers={"otobo-api-key": settings.OTOBO_AI_LLM_API_KEY},
+        client_kwargs= {
+            "headers" : {"Authorization": "Bearer " + settings.OTOBO_AI_LLM_API_KEY, "Content-Type" : "apllication/json"}
+        },
         format="json" if use_ollama_json_format else None,
     )
 
