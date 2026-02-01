@@ -1,7 +1,7 @@
 from fastapi import HTTPException
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
-from langchain_ollama import ChatOllama, OllamaEmbeddings
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from loguru import logger
 
 # Local imports from the project
@@ -17,9 +17,11 @@ settings = AppSettings()
 @logger.catch(reraise=True)
 def get_embeddingsmodel():
     # Returns an embedding model instance using Ollama with config values
-    return OllamaEmbeddings(
-        base_url=settings.OTOBO_AI_LLM_HOST,
-        model=settings.OTOBO_AI_EMBEDDING_MODEL
+    return OpenAIEmbeddings(
+        model=settings.OTOBO_AI_EMBEDDING_MODEL,
+        base_url=f"{settings.OTOBO_AI_LLM_HOST}/v1",
+        api_key=settings.OTOBO_AI_LLM_API_KEY or "ollama",
+        check_embedding_ctx_length=False,
     )
 
 
@@ -73,14 +75,15 @@ async def purge_vectorstore(with_embedding: bool = True):
 
 @logger.catch(reraise=True)
 def get_model(use_ollama_json_format: bool = False):
-    # Instantiates a chat model via Ollama, optionally using JSON output format
-    return ChatOllama(
-        base_url=settings.OTOBO_AI_LLM_HOST,
+    # Instantiates a chat model via Ollama
+    return ChatOpenAI(
         model=settings.OTOBO_AI_LLM_MODEL,
+        base_url=f"{settings.OTOBO_AI_LLM_HOST}/v1",
+        api_key=settings.OTOBO_AI_LLM_API_KEY or "ollama",  # must be non-empty
         temperature=settings.OTOBO_AI_LLM_TEMPERATURE,
-        headers={"otobo-api-key": settings.OTOBO_AI_LLM_API_KEY},
-        format="json" if use_ollama_json_format else None,
+        use_responses_api=False,  # important for Ollama compatibility
     )
+
 
 
 @logger.catch(reraise=True)
