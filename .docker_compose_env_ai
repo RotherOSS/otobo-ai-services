@@ -60,9 +60,9 @@ OTOBO_AI_LLM_MODEL=llama3.3:70b
 # Parameters for LANGFUSE
 # Optional: Keys for debugging
 #####################
-# OTOBO_AI_LANGFUSE_PK
-# OTOBO_AI_LANGFUSE_SK
-# OTOBO_AI_LANGFUSE_HOST
+LANGFUSE_SECRET_KEY=""
+LANGFUSE_PUBLIC_KEY=""
+LANGFUSE_HOST="https://langfuse.otobo.io"
 
 # OTOBO_AI_LOG_FILE
 # OTOBO_AI_LOG_LEVEL
