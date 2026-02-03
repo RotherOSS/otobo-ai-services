@@ -119,7 +119,7 @@ if settings.OTOBO_AI_LANGFUSE_SK:
         config = RunnableConfig(callbacks=[langfuse_handler])
     except Exception as e:
         logger.error(
-            "Die Authentifizierung mit Langfuse ist fehlgeschlagen. Sind die env-Variablen OTOBO_AI_LANGFUSE_PK, OTOBO_AI_LANGFUSE_SK und OTOBO_AI_LANGFUSE_HOST gesetzt?"
+            "Die Authentifizierung mit Langfuse ist fehlgeschlagen. Sind die env-Variablen LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY, und LANGFUSE_HOST gesetzt?"
         )
         logger.error(e)
 else:
