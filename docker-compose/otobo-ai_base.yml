@@ -3,9 +3,6 @@
 # See also https://github.com/RotherOSS/otobo-ai-services#
 # See also dockerhub...
 
-# same version as in otobo-base.yml
-version: '3.3'
-
 services:
   otobo-ai:
     image: ${OTOBO_IMAGE_OTOBO_AI:-rotheross/otobo-ai-services:latest}
@@ -14,10 +11,10 @@ services:
       - postgres
     env_file:
       - ../.env
-#    environment: .env
-#      LANGFUSE_PUBLIC_KEY: ${OTOBO_AI_LANGFUSE_PK}
-#      LANGFUSE_SECRET_KEY: ${OTOBO_AI_LANGFUSE_SK}
-#      LANGFUSE_HOST: ${OTOBO_AI_LANGFUSE_HOST}
+    environment:
+      LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY}
+      LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY}
+      LANGFUSE_HOST: ${LANGFUSE_BASE_URL}
     volumes:
       - chromadb_data:/chroma
       - ../rags:/code/src/rags
@@ -26,8 +23,6 @@ services:
       --host ${OTOBO_AI_HOST}
       --port ${OTOBO_AI_PORT}
       --loop asyncio
-    networks: 
-    - otobo_default
 
   postgres:
     image: postgres:16-alpine
@@ -39,13 +34,7 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ../src/init-sql:/docker-entrypoint-initdb.d
     restart: unless-stopped
-    networks: 
-    - otobo_default
 
 volumes:
   chromadb_data: {}
   postgres_data: {}
-
-networks:
-  otobo_default:
-    external: true

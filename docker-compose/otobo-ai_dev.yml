@@ -1,53 +1,9 @@
 # Docker compose file for "Roboto", the OTOBO AI service.
 
 # See also https://github.com/RotherOSS/otobo-ai-services#
-# See also dockerhub...
-
-# same version as in otobo-base.yml
-version: '3.3'
 
 services:
   otobo-ai:
+    # build from local Dockerfile
     build: ..
-    restart: always
-    depends_on:
-      - postgres
-    env_file:
-      - ../.env
-#    environment: .env
-#      LANGFUSE_PUBLIC_KEY: ${OTOBO_AI_LANGFUSE_PK}
-#      LANGFUSE_SECRET_KEY: ${OTOBO_AI_LANGFUSE_SK}
-#      LANGFUSE_HOST: ${OTOBO_AI_LANGFUSE_HOST}
-    volumes:
-      - chromadb_data:/chroma
-      - ../rags:/code/src/rags
-    command: >
-      uvicorn src.server:app
-      --host ${OTOBO_AI_HOST}
-      --port ${OTOBO_AI_PORT}
-      --loop asyncio
-    ports:
-      - "8000:8000"
-    networks: 
-    - otobo_default
-
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: ${OTOBO_AI_PG_DB}
-      POSTGRES_USER: ${OTOBO_AI_PG_USER}
-      POSTGRES_PASSWORD: ${OTOBO_AI_PG_PW}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ../src/init-sql:/docker-entrypoint-initdb.d
-    restart: unless-stopped
-    networks: 
-    - otobo_default
-
-volumes:
-  chromadb_data: {}
-  postgres_data: {}
-
-networks:
-  otobo_default:
-    external: true
+    image: !reset null
