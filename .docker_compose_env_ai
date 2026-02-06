@@ -34,7 +34,8 @@ OTOBO_AI_PORT=8000
 # Parameters for Vector Database
 ###############################
 OTOBO_AI_CHROMA_DIR=/chroma
-
+OTOBO_AI_EMBEDDING_CHUNK_SIZE=1100
+OTOBO_AI_EMBEDDING_CHUNK_OVERLAP=100
 
 # Parameters for language models
 #####################

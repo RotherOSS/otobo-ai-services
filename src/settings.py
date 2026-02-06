@@ -56,8 +56,8 @@ class AppSettings:
         self.OTOBO_AI_PG_DSN = (f"postgresql://{self.OTOBO_AI_PG_USER}:{self.OTOBO_AI_PG_PW}"
                                 f"@{self.OTOBO_AI_PG_HOST}:{self.OTOBO_AI_PG_PORT}/{self.OTOBO_AI_PG_DB}")
 
-        self.embedding_chunk_size = 1100
-        self.embedding_chunk_overlap = 100
+        self.embedding_chunk_size = int(os.getenv("OTOBO_AI_EMBEDDING_CHUNK_SIZE", "1100"))
+        self.embedding_chunk_overlap = int(os.getenv("OTOBO_AI_EMBEDDING_CHUNK_OVERLAP", "100"))
 
         self.check_envs()
 
