@@ -1,0 +1,17 @@
+# Docker compose file for "Roboto", the OTOBO AI service.
+
+# See also https://github.com/RotherOSS/otobo-ai-services#
+# See also dockerhub...
+
+services:
+  otobo-ai:
+    networks:
+      - otobo_default
+
+  postgres:
+    networks:
+      - otobo_default
+
+networks:
+  otobo_default:
+    external: true

@@ -5,7 +5,7 @@
 # project name is 'acme_support' then the web container is named either 'acme_support_web_1' for
 # Compose V1 or 'acme_support-web-1 for Compose V2. The project name also declares
 # the prefix of named volumes. Thus changing the project name allows to have
-# seperate containers and volumes for separate installations of OTOBO.
+# separate containers and volumes for separate installations.
 #
 # Note that when COMPOSE_PROJECT_NAME is set in the shell environment,
 # then that setting has higher precedence.
@@ -13,18 +13,16 @@ COMPOSE_PROJECT_NAME=otobo-ai
 
 # COMPOSE_FILE is a collection of files, separated by COMPOSE_PATH_SEPARATOR, that make up the final config.
 # These files usually reside in the subdirectory docker-compose.
-#
-# Additional services can be added by concatenating more files to COMPOSE_FILE. An example would services
-# for S3 compatible storage. That is: :docker-compose/otobo-localstack.yml or :docker-compose/otobo-minio.yml.
-# An OpenLDAP server for use by the unit tests can be activated by appending :docker-compose/testing/openldap.yml.
+# Additional services can be added by concatenating more files to COMPOSE_FILE.
 COMPOSE_PATH_SEPARATOR=:
-COMPOSE_FILE=docker-compose/otobo-ai.yml
-# COMPOSE_FILE=docker-compose/otobo-ai_standalone.yml  # Use this for independent development
+COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_otobo-docker.yml # if you run the OTOBO docker compose stack
+# COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_standalone.yml  # Use this for independent setup (OTOBO native installation)
+# COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_otobo-docker.yml:docker-compose/otobo-ai_dev.yml # for development
 
 # Parameters from this API server
 ################################
-# Token to auth this API
-OTOBO_AI_API_KEY=<use a secret API key>
+# Token to auth this API, generate via `openssl rand -hex 32`
+OTOBO_AI_API_KEY=CHANGEME
 
 # Optional, Ip address of this server inside the docker, default is "0.0.0.0"
 OTOBO_AI_HOST=0.0.0.0
@@ -41,10 +39,10 @@ OTOBO_AI_CHROMA_DIR=/chroma
 # Parameters for language models
 #####################
 # Optional: token to auth the llm server
-OTOBO_AI_LLM_API_KEY="secret-to-use-otobo-ai-server"
+OTOBO_AI_LLM_API_KEY="api-key-to-the-llm-server"
 
-# Optional: URL llama server, default is "http://localhost:11434" (can change in future)
-OTOBO_AI_LLM_HOST=http://ai.local.rother-oss.com:11434
+# URL of OpenAI API compatible LLM server
+OTOBO_AI_LLM_HOST=http://myollama:11434
 
 # Optional: llama llm model, default is llama2:13b-chat
 OTOBO_AI_LLM_MODEL=llama3.3:70b
@@ -62,7 +60,7 @@ OTOBO_AI_LLM_MODEL=llama3.3:70b
 #####################
 LANGFUSE_SECRET_KEY=""
 LANGFUSE_PUBLIC_KEY=""
-LANGFUSE_HOST="https://langfuse.otobo.io"
+LANGFUSE_BASE_URL=""
 
 # OTOBO_AI_LOG_FILE
 # OTOBO_AI_LOG_LEVEL
