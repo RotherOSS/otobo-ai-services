@@ -1,8 +1,11 @@
 ## Introduction
 
-This project provides a modular, standalone RAG (Retrieval-Augmented Generation) hosting service designed to integrate with the OTOBO ticket system. It enables easy experimentation and deployment of multiple custom RAG pipelines. Each RAG module defines its own retrieval/generation logic and API schema, loaded dynamically at runtime.
+This project provides a modular, standalone RAG (Retrieval-Augmented Generation) hosting service designed to integrate with the OTOBO ticket system.
+It enables easy experimentation and deployment of multiple custom RAG pipelines.
+Each RAG module defines its own retrieval/generation logic and API schema, loaded dynamically at runtime.
 
-The system uses **LangGraph**, **LangChain**, and **ChromaDB** to support flexible embedding and LLM-powered generation. It exposes a REST API via **FastAPI** for ingesting content and interacting with configured RAGs.
+The system uses **LangGraph**, **LangChain**, and **ChromaDB** to support flexible embedding and LLM-powered generation.
+It exposes a REST API via **FastAPI** for ingesting content and interacting with configured RAGs.
 
 ---
 
@@ -25,15 +28,25 @@ Either copy example RAGs or define your own inside the `rags/` directory (not ve
 cp -r rag_examples/simple_rag rags/simple_rag
 ```
 
-### 3. Start the Project
+### 3. Configure the Environment
+
+Create a `.env` file in the root directory to configure environment variables:
+
+```bash
+cp .docker_compose_env_ai .env
+```
+
+Edit the `.env` file to set your desired configuration options.
+
+### 4. Start the Containers
 
 Use Docker Compose to build and run the server:
 
 ```bash
-docker-compose up --build
+docker compose up --build --detach
 ```
 
-The `docker-compose.yaml` mounts the local `./rags` directory into the container as `src/rags`, enabling external customization.
+The `docker compose.yaml` mounts the local `./rags` directory into the container as `src/rags`, enabling external customization.
 
 ---
 
@@ -72,10 +85,14 @@ Ingest a **batch** of data items for embedding.
 {
   "type": "faq",
   "content": [
-    [{ "type": "question", "text": "What is OTOBO?" },
-     { "type": "answer", "text": "A ticketing system." }],
-    [{ "type": "question", "text": "In what language is OTOBO written?" },
-     { "type": "answer", "text": "In Perl." }]
+    [
+      { "type": "question", "text": "What is OTOBO?" },
+      { "type": "answer", "text": "A ticketing system." }
+    ],
+    [
+      { "type": "question", "text": "In what language is OTOBO written?" },
+      { "type": "answer", "text": "In Perl." }
+    ]
   ],
   "embed_content_types": ["question"],
   "store_fulltext": true,
@@ -130,7 +147,8 @@ Run the full RAG process (retrieve and generate).
 }
 ```
 
-Each RAG can define its own input/output models, but this is the expected default format. Note that only the `input` and `output` fields are relevant for usage within OTOBO, the other fields are automatically provided by **LangServe**
+Each RAG can define its own input/output models, but this is the expected default format.
+Note that only the `input` and `output` fields are relevant for usage within OTOBO, the other fields are automatically provided by **LangServe**
 
 ---
 
@@ -150,10 +168,10 @@ rags/
 
 ### Required Files
 
-- **`graph.py`**  
+- **`graph.py`**
   Must define a `graph` object using `StateGraph`, compiled with `graph = workflow.compile()`.
 
-- **`io_models.py`**  
+- **`io_models.py`**
   Must define:
 
   ```python
@@ -165,10 +183,10 @@ These models define the request and response schema for your RAG.
 
 ### Optional Files
 
-- **`chains.py`**  
+- **`chains.py`**
   Use this to separate LangChain logic or define chains used in your workflow.
 
-- **`prompts/`**  
+- **`prompts/`**
   Store custom prompt templates here. Load them with `Path(__file__).parent / "prompts" / "prompt.txt"`.
 
 ### Example: Minimal `graph.py`
@@ -185,7 +203,8 @@ graph = workflow.compile()
 
 ### Registration
 
-All RAGs in `rags/` are auto-registered by `register_rags(app)` on startup. If files or required types are missing, the module will be skipped with a warning.
+All RAGs in `rags/` are auto-registered by `register_rags(app)` on startup.
+If files or required types are missing, the module will be skipped with a warning.
 
 ---
 
@@ -195,9 +214,12 @@ This project supports dynamic loading of RAG modules at runtime via the `registe
 
 ### How It Works
 
-At startup, the server scans the `src/rags/` directory for subdirectories containing a `graph.py` file. Each `graph.py` must define a `graph` object with a `.with_config(config)` method. These are registered as individual FastAPI routes under `/otobo-ai/{rag_name}`, protected by API key.
+At startup, the server scans the `src/rags/` directory for subdirectories containing a `graph.py` file.
+Each `graph.py` must define a `graph` object with a `.with_config(config)` method.
+These are registered as individual FastAPI routes under `/otobo-ai/{rag_name}`, protected by API key.
 
 Each RAG module must follow this structure:
+
 - A `graph.py` defining the LangGraph workflow (`graph`)
 - An `io_models.py` defining the input/output types (`RAGInput` and `RAGOutput`)
 - Optionally, `chains.py`, prompt templates, and other helpers
@@ -214,38 +236,12 @@ src/
 │   │   ├── chains.py
 │   │   ├── io_models.py
 │   │   └── prompts/
-│   └── ... 
+│   └── ...
 └── ...
 rag_examples/          ← reference implementations
-├── simple_rag/        
-└── ...        
+├── simple_rag/
+└── ...
 ```
-
-### Usage Instructions
-
-1. **Clone the repo**
-
-2. **Copy the example RAGs** (or create your own)
-
-   ```bash
-   cp -r rag_examples/simple_rag rags/simple_rag
-   ```
-
-3. **Run the server**
-
-   ```bash
-   docker-compose up --build
-   ```
-
-   The Docker Compose config mounts `./rags` as `src/rags` inside the container. You can swap in a different directory with a different Compose file if needed.
-
-4. **Access the API**
-
-   The example RAG `simple_rag` will be available at:
-
-   ```
-   POST /otobo-ai/simple_rag/invoke
-   ```
 
 ---
 
@@ -255,9 +251,11 @@ To update the dependencies in a controlled way:
 
 ### 1. Unpin Non-Critical Dependencies
 
-In `requirements.txt`, remove version pins from most packages. Keep pins **only** for critical compatibility fixes.
+In `requirements.txt`, remove version pins from most packages.
+Keep pins **only** for critical compatibility fixes.
 
 **Before:**
+
 ```txt
 uvicorn==0.25.0
 fastapi==0.108.0
@@ -267,6 +265,7 @@ numpy==1.26.4
 ```
 
 **After:**
+
 ```txt
 uvicorn
 fastapi
@@ -278,13 +277,13 @@ numpy==1.26.4
 ### 2. Rebuild Containers
 
 ```bash
-docker-compose build
+docker compose build
 ```
 
 ### 3. Start the Project
 
 ```bash
-docker-compose up
+docker compose up
 ```
 
 Ensure it runs without version issues.
@@ -298,7 +297,7 @@ Verify ingestion and RAG endpoints still work correctly.
 After confirming stability, inspect the installed versions:
 
 ```bash
-docker-compose run --rm otobo-ai pip list
+docker compose run --rm otobo-ai pip list
 ```
 
 ### 6. Pin Final Versions
