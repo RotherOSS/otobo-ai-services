@@ -15,9 +15,9 @@ COMPOSE_PROJECT_NAME=otobo-ai
 # These files usually reside in the subdirectory docker-compose.
 # Additional services can be added by concatenating more files to COMPOSE_FILE.
 COMPOSE_PATH_SEPARATOR=:
-COMPOSE_FILE=docker-compose/otobo-ai-base.yml:docker-compose/otobo-ai-otobo-docker.yml # if you run the OTOBO docker compose stack
-# COMPOSE_FILE=docker-compose/otobo-ai-base.yml:docker-compose/otobo-ai_standalone.yml  # Use this for independent setup (OTOBO native installation)
-# COMPOSE_FILE=docker-compose/otobo-ai-base.yml:docker-compose/otobo-ai-otobo-docker.yml:docker-compose/otobo-ai_dev.yml # for development
+COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_otobo-docker.yml # if you run the OTOBO docker compose stack
+# COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_standalone.yml  # Use this for independent setup (OTOBO native installation)
+# COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_otobo-docker.yml:docker-compose/otobo-ai_dev.yml # for development
 
 # Parameters from this API server
 ################################
