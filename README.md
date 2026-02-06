@@ -20,13 +20,21 @@ git clone git@github.com:RotherOSS/otobo-ai.git
 cd otobo-ai
 ```
 
-### 2. (Optional) Define Your Own RAGs
+### 2. Get a RAG definition
 
-Either copy example RAGs or define your own inside the `rags/` directory (not version-controlled by default):
+Example RAG definitions are provided under `rag_examples`.
+The `simple_rag` is for stand alone development.
+If you use this setup with OTOBO, choose the `tfd_rag1`.
+It supports Tickets, FAQ and Documentation.
+
+Copy the RAG description to your RAG definition folder.
 
 ```bash
-cp -r rag_examples/simple_rag rags/simple_rag
+cp -r rag_examples/tfd_rag1 rags
 ```
+
+All RAG definitions placed here are exposed at the web service.
+You may tune it to your liking, or create a new one!
 
 ### 3. Configure the Environment
 
