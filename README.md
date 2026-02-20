@@ -30,7 +30,7 @@ It supports Tickets, FAQ and Documentation.
 Copy the RAG description to your RAG definition folder.
 
 ```bash
-cp -r rag_examples/tfd_rag1 rags
+cp -r rags_examples/tfd_rag1 rags
 ```
 
 All RAG definitions placed here are exposed at the web service.
