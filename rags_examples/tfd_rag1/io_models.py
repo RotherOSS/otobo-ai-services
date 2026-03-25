@@ -12,4 +12,5 @@ class RAGInput(BaseModel):
 class RAGOutput(BaseModel):
     question: str
     generation: Optional[str] = None
-    score: Optional[float] = None
+    score: Optional[str] = None
+

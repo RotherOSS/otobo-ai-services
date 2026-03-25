@@ -184,6 +184,17 @@ async def purge():
     logger.error(f"purge all");
     return await purge_vectorstore(True)
 
+# purge the a collection from vector store + postgres
+@app.delete(
+    "/otobo-ai/embedding/purge/{collection_name}",
+    name="Ingest Purge",
+    description="Purge the named collection from vector store.",
+    dependencies=[Depends(get_api_key)],
+)
+async def purge_named_collection(collection_name):
+    logger.error(f"purge collection {collection_name}");
+    return await purge_collection(True,collection_name)
+
 
 # Ingest a batch of items for embedding
 @app.put(

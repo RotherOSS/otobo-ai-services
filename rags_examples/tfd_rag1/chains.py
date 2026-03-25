@@ -81,17 +81,13 @@ eval_chain_prompt = PromptTemplate(
 )
 
 
-# Parses and validates model output as JSON
+# Passes model output as string back to invoker
 def structure_output(llm_output):
-    try:
-        response_data = json.loads(llm_output)
-        return EvalOutput(**response_data)
-    except (json.JSONDecodeError, ValueError) as e:
-        logger.error(f"Invalid format: {e}")
-        return None
+    return llm_output
 
 
 # Combines numeric scores from evaluation (if answer is marked as solved)
+# Note: this is currently disabled in favour of just passing the score to invoker
 def combine_score(validated_response):
     if not validated_response or not validated_response.solved:
         return 0
@@ -108,5 +104,5 @@ eval_chain = (
     | llm
     | StrOutputParser()
     | structure_output
-    | combine_score
+#    | combine_score                 # Note: currently disabled
 )

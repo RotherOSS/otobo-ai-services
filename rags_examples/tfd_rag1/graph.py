@@ -23,7 +23,7 @@ class GraphState(TypedDict):
     docs: List[Document] | None
     ticket_chunks: List[Document] | None
     ticket_pairs: List[Document] | None
-    score: float | None
+    score: str | None
 
 
 # Creates a retrieval function for the given input source and maps results to output key

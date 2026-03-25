@@ -54,6 +54,7 @@ async def purge_collection(with_embedding: bool = True, collection_name: str = s
     pool = get_pg_pool()
     async with pool.acquire() as conn:
         await conn.execute("DELETE FROM source_vector_index_map WHERE collection_name = $1 ", collection_name);
+        await conn.execute("DELETE FROM fulltext WHERE collection_name = $1 ", collection_name);
 
     return { "success": True  }
 
@@ -66,12 +67,6 @@ async def purge_vectorstore(with_embedding: bool = True):
     for collection in collections:
 
         await purge_collection( with_embedding=with_embedding, collection_name=collection )
-
-    # postgres
-    
-    pool = get_pg_pool()
-    async with pool.acquire() as conn:
-        await conn.execute("DELETE FROM fulltext")
 
     return { "success": True  }
 
