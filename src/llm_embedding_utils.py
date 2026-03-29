@@ -70,10 +70,9 @@ async def purge_vectorstore(with_embedding: bool = True):
 
     return { "success": True  }
 
-    
 
 @logger.catch(reraise=True)
-def get_model(use_ollama_json_format: bool = False, eval=False):
+def get_model(use_ollama_json_format: bool = False, eval: bool = False):
     # Instantiates a chat model via Ollama
     return ChatOpenAI(
         model=settings.OTOBO_AI_LLM_EVAL_MODEL if eval else settings.OTOBO_AI_LLM_MODEL,
