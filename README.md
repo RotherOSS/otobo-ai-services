@@ -44,7 +44,11 @@ Create a `.env` file in the root directory to configure environment variables:
 cp .docker_compose_env_ai .env
 ```
 
-Edit the `.env` file to set your desired configuration options.
+Edit the `.env` file to set your desired configuration options. For independent setup use
+
+```
+COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_standalone.yml
+```
 
 ### 4. Start the Containers
 

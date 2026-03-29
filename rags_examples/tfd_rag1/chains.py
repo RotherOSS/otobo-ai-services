@@ -10,6 +10,7 @@ import json
 
 settings = AppSettings()
 llm = get_model()
+llm_eval = get_model(eval=True)
 json_llm = get_model(use_ollama_json_format=True)
 
 
@@ -101,7 +102,7 @@ def combine_score(validated_response):
 # Full evaluation chain: prompt → model → JSON validation → score calculation
 eval_chain = (
     eval_chain_prompt
-    | llm
+    | llm_eval
     | StrOutputParser()
     | structure_output
 #    | combine_score                 # Note: currently disabled

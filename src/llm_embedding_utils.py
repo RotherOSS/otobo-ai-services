@@ -73,13 +73,13 @@ async def purge_vectorstore(with_embedding: bool = True):
     
 
 @logger.catch(reraise=True)
-def get_model(use_ollama_json_format: bool = False):
+def get_model(use_ollama_json_format: bool = False, eval=False):
     # Instantiates a chat model via Ollama
     return ChatOpenAI(
-        model=settings.OTOBO_AI_LLM_MODEL,
+        model=settings.OTOBO_AI_LLM_EVAL_MODEL if eval else settings.OTOBO_AI_LLM_MODEL,
         base_url=f"{settings.OTOBO_AI_LLM_HOST}/v1",
-        api_key=settings.OTOBO_AI_LLM_API_KEY or "ollama",  # must be non-empty        
-        temperature=settings.OTOBO_AI_LLM_TEMPERATURE,
+        api_key=settings.OTOBO_AI_LLM_API_KEY or "ollama",  # must be non-empty
+        temperature=settings.OTOBO_AI_LLM_EVAL_TEMPERATURE if eval else settings.OTOBO_AI_LLM_TEMPERATURE,
         use_responses_api=False,  # important for Ollama compatibility
     )
 

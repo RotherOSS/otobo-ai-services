@@ -30,11 +30,13 @@ class AppSettings:
         self.OTOBO_AI_LLM_API_KEY = os.getenv("OTOBO_AI_LLM_API_KEY", None)
         self.OTOBO_AI_LLM_HOST = os.getenv("OTOBO_AI_LLM_HOST", "http://localhost:11434")
         self.OTOBO_AI_LLM_MODEL = os.getenv("OTOBO_AI_LLM_MODEL", "llama3.2")
+        self.OTOBO_AI_LLM_EVAL_MODEL = os.getenv("OTOBO_AI_LLM_MODEL", "llama3.2")
         self.OTOBO_AI_EMBEDDING_MODEL = os.getenv(
             "OTOBO_AI_EMBEDDING_MODEL", "bge-m3"
         )
 
         self.OTOBO_AI_LLM_TEMPERATURE = float(os.getenv("OTOBO_AI_LLM_TEMPERATURE", "0.1"))
+        self.OTOBO_AI_LLM_EVAL_TEMPERATURE = float(os.getenv("OTOBO_AI_LLM_TEMPERATURE", "0.1"))
 
         self.fastapi_title = "OTOBO AI"
         self.fastapi_version = "1.0"

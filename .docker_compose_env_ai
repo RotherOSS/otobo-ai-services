@@ -16,7 +16,7 @@ COMPOSE_PROJECT_NAME=otobo-ai
 # Additional services can be added by concatenating more files to COMPOSE_FILE.
 COMPOSE_PATH_SEPARATOR=:
 COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_otobo-docker.yml # if you run the OTOBO docker compose stack
-# COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_standalone.yml  # Use this for independent setup (OTOBO native installation)
+# COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_standalone.yml # Use this for independent setup (OTOBO native installation)
 # COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_otobo-docker.yml:docker-compose/otobo-ai_dev.yml # for development
 
 # Parameters from this API server
@@ -47,6 +47,7 @@ OTOBO_AI_LLM_HOST=http://myollama:11434
 
 # Optional: llama llm model, default is llama2:13b-chat
 OTOBO_AI_LLM_MODEL=llama3.3:70b
+OTOBO_AI_LLM_EVAL_MODEL=llama3.3:70b
 
 # Optional: embedding model, default is bge-m3
 ### WARNING ###
@@ -55,6 +56,7 @@ OTOBO_AI_LLM_MODEL=llama3.3:70b
 
 # Optional: temperature (see llama doc), default is 0.1
 # OTOBO_AI_LLM_TEMPERATURE=0.1
+# OTOBO_AI_LLM_EVAL_TEMPERATURE=0.1
 
 # Parameters for LANGFUSE
 # Optional: Keys for debugging
