@@ -52,7 +52,7 @@ OTOBO_AI_LLM_EVAL_MODEL=llama3.3:70b
 # Optional: embedding model, default is bge-m3
 ### WARNING ###
 # Changeing this value in production will require to recreate the database because the dimension of the embedding models might be different.
-# OTOBO_AI_EMBEDDING_MODEL=bge-m3
+OTOBO_AI_EMBEDDING_MODEL=qwen3-embedding:0.6b
 
 # Optional: temperature (see llama doc), default is 0.1
 # OTOBO_AI_LLM_TEMPERATURE=0.1
