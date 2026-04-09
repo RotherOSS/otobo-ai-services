@@ -50,6 +50,9 @@ Edit the `.env` file to set your desired configuration options. For independent 
 COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_standalone.yml
 ```
 
+> [!IMPORTANT]
+> For usage with an OTOBO docker setups, docker compose v2 is required.
+
 ### 4. Start the Containers
 
 Use Docker Compose to build and run the server:
