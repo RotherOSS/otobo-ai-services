@@ -11,6 +11,20 @@ from src.data_models.ingest import IngestInput, IngestInputBatch
 from src.data_models.retrieve import QueryInput
 from src.data_models.delete import DeleteInput
 
+from langchain.callbacks.base import BaseCallbackHandler
+
+
+class DebugHandler(BaseCallbackHandler):
+    def on_llm_start(self, serialized, prompts, **kwargs):
+        print("\n--- PROMPT ---")
+        for p in prompts:
+            print(p)
+
+    def on_llm_end(self, response, **kwargs):
+        print("\n--- RESPONSE ---")
+        print(response)
+
+
 settings = AppSettings()
 
 @logger.catch(reraise=True)
@@ -197,7 +211,7 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
     try:
         collection_name =batch_input.type or settings.OTOBO_AI_CHROMA_DEF_COL_NAME
         
-        logger.info( f"ingest into collection {collection_name}" );
+        logger.info( f"ingest into collection {collection_name}" )
         fulltext_ids = []
 
         pool = get_pg_pool()
