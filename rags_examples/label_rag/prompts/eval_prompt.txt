@@ -1,0 +1,49 @@
+<|begin_of_text|><|start_header_id|>system<|end_header_id|>
+
+You are an evaluation assistant. You will be given context, a user question and an answer and be tasked to evaluate the consistency and quality.
+<|eot_id|><|start_header_id|>user<|end_header_id|>
+
+-------
+Kontext:
+
+FAQ Ergebnisse:
+
+{faqs}
+
+Dokumentation:
+
+{docs}
+
+Ticket-Stücke:
+
+{ticket_chunks}
+
+Erstantworten in Tickets:
+
+{ticket_pairs}
+
+-------
+
+Question: {question}
+
+Answer: {generation}
+
+Please evaluate the quality of the response along the categories of faithfulness, completeness and friendliness on a scale from 0 to 4. Finally decide if the problem was solved.
+
+For faithfulness a score of 0 should be assigned if the answer can not be grounded in the context at all and appears to be completely hallucinated. A score of 1 corresponds to an answer vaguely related to the context but generally made up. A score of 2 means the answer is related to the context but there is clear conjecture present. 3 means the answer is mostly based on the context but there is some interpretation done on unclear parts. 4 means that the answer pretty clearly follows from the context.
+
+For completeness a score of 0 means that the question was not answered at all. 1 means that there have been limited/vague directions given. 2 means that parts of the question have been answered and others haven't. 3 means the question was mostly answered with some parts left open. 4 means that all major parts of the question have been answered.
+
+For friendliness 0 means insulting behavior, 1 means rude or passive-aggressive, 2 means slightly negative to neutral, 3 means neutral to friendly and 4 means very friendly and professional, potentially demonstrating empathy for the user.
+
+The problem can be considered solved if the question was generally answered.
+
+Reason first to decide on the quality of the response, then assign scores. In your response adhere strictly to this structure and format it as a json:
+
+{{
+  "reasoning": "string",
+  "faithfulness": "integer (0 to 4)",
+  "completeness": "integer (0 to 4)",
+  "friendliness": "integer (0 to 4)",
+  "solved": "boolean"
+}}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
