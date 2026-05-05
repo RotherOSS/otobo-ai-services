@@ -9,7 +9,7 @@ class ContentItem(BaseModel):
 
 class ContentSet(BaseModel):
     source_id: str
-    label: str = None
+    labels: Optional[List[str]] = None
     content_items: List[ContentItem]
 
 # Model for a single ingestion payload.
@@ -19,7 +19,7 @@ class IngestInput(BaseModel):
     fulltext_types: Optional[List[str]] = None  # Specifies which content types to store in full.
     embed_content_types: Optional[List[str]] = None  # Specifies which content types to embed for retrieval.
     source_id: str = None
-    label: str = None
+    labels: Optional[List[str]] = None
     content: List[ContentItem]  # A list of content items to ingest.
 
 

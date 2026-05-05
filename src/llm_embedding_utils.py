@@ -202,7 +202,7 @@ async def put_embeddings(insert_input: IngestInput):
                     if fulltext_id is not None:
                         doc.metadata["fulltext_source_id"] = fulltext_id
                     if insert_input.label:
-                        doc.metadata["label"] = insert_input.label
+                        doc.metadata["label"] = insert_input.label[0]  # todo/WARNING: Currently only single labels are supported, so the first label in a list is used. Extend filter logic later
 
                 embed_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
                 vec_ids = await embed_store.aadd_documents(all_splits)
@@ -290,7 +290,7 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
                     if batch_input.store_fulltext and idx < len(fulltext_ids):
                         doc.metadata["fulltext_source_id"] = fulltext_ids[idx]
                     if batch_input.has_labels and idx < len(labels):
-                        doc.metadata["label"] = labels[idx]
+                        doc.metadata["label"] = labels[idx][0]  # todo/WARNING: Currently only single labels are supported, so the first label in a list is used. Extend filter logic later
 
                 embed_docs.extend(splits)
                 source_ids.extend([content_set.source_id] * len(splits))
