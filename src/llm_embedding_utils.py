@@ -201,8 +201,8 @@ async def put_embeddings(insert_input: IngestInput):
                 for doc in all_splits:
                     if fulltext_id is not None:
                         doc.metadata["fulltext_source_id"] = fulltext_id
-                    if insert_input.label:
-                        doc.metadata["label"] = insert_input.label[0]  # todo/WARNING: Currently only single labels are supported, so the first label in a list is used. Extend filter logic later
+                    if insert_input.labels:
+                        doc.metadata["label"] = insert_input.labels[0]  # todo/WARNING: Currently only single labels are supported, so the first label in a list is used. Extend filter logic later
 
                 embed_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
                 vec_ids = await embed_store.aadd_documents(all_splits)
@@ -229,6 +229,7 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
 
         if batch_input.has_labels:
             labels = []
+            logger.info( f"labels: {labels}" )
 
         pool = get_pg_pool()
         async with pool.acquire() as conn:
@@ -243,14 +244,14 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
                         fulltext_texts.append(fulltext)
                         fulltext_ids.append(content_set.source_id)
                         if batch_input.has_labels:
-                            labels.append(content_set.label)
+                            labels.append(content_set.labels)
                 else:
                     for content_set in batch_input.content:
                         fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in content_set.content_items])
                         fulltext_texts.append(fulltext)
                         fulltext_ids.append(content_set.source_id)
                         if batch_input.has_labels:
-                            labels.append(content_set.label)
+                            labels.append(content_set.labels)
 
                 await conn.fetch(
                     """
