@@ -266,6 +266,9 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
                     fulltext_ids,
                     fulltext_texts,
                 )
+            elif batch_input.has_labels:
+                for content_set in batch_input.content:
+                    labels.append(content_set.labels)
 
             # Prepare documents for embedding
             embed_docs = []
