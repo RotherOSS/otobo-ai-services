@@ -7,9 +7,13 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 from typing_extensions import TypedDict
 
 from src.settings import AppSettings
-from src.rags.simple_rag.chains import rag_chain
 from src.llm_embedding_utils import query_embeddings
 from src.data_models.retrieve import QueryInput
+from src.utils import relative_import
+
+
+rag_chain = relative_import("chains", file=__file__).rag_chain
+
 
 settings = AppSettings()
 
