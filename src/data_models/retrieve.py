@@ -8,3 +8,4 @@ class QueryInput(BaseModel):
     query_text: str  # The actual user query (used to generate embeddings for retrieval).
     retrieve_fulltext: bool = False  # If true, returns the stored raw content alongside results.
     n_results: int = 10  # Number of top documents to retrieve.
+    labels: List[str] = []

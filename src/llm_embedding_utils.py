@@ -118,7 +118,18 @@ async def query_embeddings(retrieve: QueryInput):
         
         logger.info( f"query_embeddings from {collection_name}" )
         vector_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
-        results = await vector_store.asimilarity_search(query=retrieve.query_text, k=retrieve.n_results)
+        if retrieve.labels:
+            results = await vector_store.asimilarity_search(
+                query=retrieve.query_text,
+                k=retrieve.n_results,
+                filter={
+                    "label": {
+                        "$in": retrieve.labels
+                    }
+                },
+            )
+        else:
+            results = await vector_store.asimilarity_search(query=retrieve.query_text, k=retrieve.n_results)
 
         # Optionally enrich results with full text from the SQL database
         if retrieve.retrieve_fulltext:
@@ -187,9 +198,11 @@ async def put_embeddings(insert_input: IngestInput):
                 all_splits = text_splitter.create_documents(selected)
 
                 # Add fulltext reference to metadata if available
-                if fulltext_id is not None:
-                    for doc in all_splits:
+                for doc in all_splits:
+                    if fulltext_id is not None:
                         doc.metadata["fulltext_source_id"] = fulltext_id
+                    if insert_input.labels:
+                        doc.metadata["label"] = insert_input.labels[0]  # todo/WARNING: Currently only single labels are supported, so the first label in a list is used. Extend filter logic later
 
                 embed_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
                 vec_ids = await embed_store.aadd_documents(all_splits)
@@ -209,10 +222,14 @@ async def put_embeddings(insert_input: IngestInput):
 async def put_embeddings_batch(batch_input: IngestInputBatch):
     # Ingests multiple items in a batch; supports storing fulltext and embedding selected fields
     try:
-        collection_name =batch_input.type or settings.OTOBO_AI_CHROMA_DEF_COL_NAME
+        collection_name = batch_input.type or settings.OTOBO_AI_CHROMA_DEF_COL_NAME
         
         logger.info( f"ingest into collection {collection_name}" )
         fulltext_ids = []
+
+        if batch_input.has_labels:
+            labels = []
+            logger.info( f"labels: {labels}" )
 
         pool = get_pg_pool()
         async with pool.acquire() as conn:
@@ -226,11 +243,15 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
                                                 item.type in batch_input.fulltext_types])
                         fulltext_texts.append(fulltext)
                         fulltext_ids.append(content_set.source_id)
+                        if batch_input.has_labels:
+                            labels.append(content_set.labels)
                 else:
                     for content_set in batch_input.content:
                         fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in content_set.content_items])
                         fulltext_texts.append(fulltext)
                         fulltext_ids.append(content_set.source_id)
+                        if batch_input.has_labels:
+                            labels.append(content_set.labels)
 
                 await conn.fetch(
                     """
@@ -245,6 +266,9 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
                     fulltext_ids,
                     fulltext_texts,
                 )
+            elif batch_input.has_labels:
+                for content_set in batch_input.content:
+                    labels.append(content_set.labels)
 
             # Prepare documents for embedding
             embed_docs = []
@@ -266,9 +290,11 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
                 splits = text_splitter.create_documents(selected)
 
                 # Attach correct fulltext ID to chunks
-                if batch_input.store_fulltext and idx < len(fulltext_ids):
-                    for doc in splits:
+                for doc in splits:
+                    if batch_input.store_fulltext and idx < len(fulltext_ids):
                         doc.metadata["fulltext_source_id"] = fulltext_ids[idx]
+                    if batch_input.has_labels and idx < len(labels):
+                        doc.metadata["label"] = labels[idx][0]  # todo/WARNING: Currently only single labels are supported, so the first label in a list is used. Extend filter logic later
 
                 embed_docs.extend(splits)
                 source_ids.extend([content_set.source_id] * len(splits))

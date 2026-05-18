@@ -31,6 +31,8 @@ class GraphState(TypedDict):
     score: str | None
 
 
+use_labels = ["kunde1", "alle_kunden"]
+
 # Creates a retrieval function for the given input source and maps results to output key
 def retrieve_function_generator(query_input: QueryInput, output: str):
     @logger.catch(reraise=True)
@@ -38,6 +40,7 @@ def retrieve_function_generator(query_input: QueryInput, output: str):
     async def retrieve(state: GraphState):
         logger.info(f"---Retrieving from {query_input.type}---")
         query_input.query_text = state["question"]
+        query_input.labels = use_labels
         results = await query_embeddings(query_input)
 
         # Decide what to return: full text or just page content
@@ -78,16 +81,16 @@ workflow = StateGraph(GraphState)
 
 # Define multiple retrieval steps for different sources
 workflow.add_node("retrieve_faq", retrieve_function_generator(
-    QueryInput(query_text="", type="faqs", retrieve_fulltext=True, n_results=3), "faqs"))
+    QueryInput(query_text="", type="faqs", retrieve_fulltext=True, n_results=3, labels=[]), "faqs"))
 
 workflow.add_node("retrieve_documentation", retrieve_function_generator(
-    QueryInput(query_text="", type="docs", retrieve_fulltext=False, n_results=3), "docs"))
+    QueryInput(query_text="", type="docs", retrieve_fulltext=False, n_results=3, labels=[]), "docs"))
 
 workflow.add_node("retrieve_full_ticket_chunks", retrieve_function_generator(
-    QueryInput(query_text="", type="ticket_chunks", retrieve_fulltext=False, n_results=3), "ticket_chunks"))
+    QueryInput(query_text="", type="ticket_chunks", retrieve_fulltext=False, n_results=3, labels=[]), "ticket_chunks"))
 
 workflow.add_node("retrieve_ticket_pairs", retrieve_function_generator(
-    QueryInput(query_text="", type="ticket_pairs", retrieve_fulltext=True, n_results=2), "ticket_pairs"))
+    QueryInput(query_text="", type="ticket_pairs", retrieve_fulltext=True, n_results=2, labels=[]), "ticket_pairs"))
 
 # Generation and optional evaluation step
 workflow.add_node("generate", generate)
