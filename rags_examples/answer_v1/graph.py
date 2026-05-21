@@ -49,7 +49,7 @@ def retrieve_function_generator(query_input: QueryInput, output: str):
         else:
             results = [result.page_content for result in results]
 
-        logger.info(results)    
+        logger.info(results)
 
         return {output: results}
 
@@ -80,6 +80,7 @@ def evaluate(state: GraphState):
 workflow = StateGraph(GraphState)
 
 # Define multiple retrieval steps for different sources
+# Do not set n_results to 0!
 workflow.add_node("retrieve_faq", retrieve_function_generator(
     QueryInput(query_text="", type="faqs", retrieve_fulltext=True, n_results=3, labels=[]), "faqs"))
 
