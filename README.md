@@ -7,6 +7,8 @@ Each RAG module defines its own retrieval/generation logic and API schema, loade
 The system uses **LangGraph**, **LangChain**, and **ChromaDB** to support flexible embedding and LLM-powered generation.
 It exposes a REST API via **FastAPI** for ingesting content and interacting with configured RAGs.
 
+You may find documentation on how to use this with OTOBO here: https://doc.otobo.org
+
 ---
 
 ## Installation and Setup
@@ -23,14 +25,13 @@ cd otobo-ai
 ### 2. Get a RAG definition
 
 Example RAG definitions are provided under `rag_examples`.
-The `simple_rag` is for stand alone development.
-If you use this setup with OTOBO, choose the `tfd_rag1`.
+If you use this setup with OTOBO, choose the `default`.
 It supports Tickets, FAQ and Documentation.
 
 Copy the RAG description to your RAG definition folder.
 
 ```bash
-cp -r rags_examples/tfd_rag1 rags
+cp -r rags_examples/default rags
 ```
 
 All RAG definitions placed here are exposed at the web service.
