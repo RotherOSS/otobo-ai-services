@@ -67,8 +67,8 @@ async def purge_collection(with_embedding: bool = True, collection_name: str = s
 
     pool = get_pg_pool()
     async with pool.acquire() as conn:
-        await conn.execute("DELETE FROM source_vector_index_map WHERE collection_name = $1 ", collection_name);
-        await conn.execute("DELETE FROM fulltext WHERE collection_name = $1 ", collection_name);
+        await conn.execute("DELETE FROM source_vector_index_map WHERE collection_name = $1 ", collection_name)
+        await conn.execute("DELETE FROM fulltext WHERE collection_name = $1 ", collection_name)
 
     return { "success": True  }
 
@@ -133,20 +133,20 @@ async def query_embeddings(retrieve: QueryInput):
 
         # Optionally enrich results with full text from the SQL database
         if retrieve.retrieve_fulltext:
-            fulltext_ids = {doc.metadata.get("fulltext_source_id") for doc in results if doc.metadata.get("fulltext_source_id")}
-            if fulltext_ids:
+            source_ids = {doc.metadata.get("source_id") for doc in results if doc.metadata.get("source_id")}
+            if source_ids:
                 pool = get_pg_pool()
                 async with pool.acquire() as conn:
                     rows = await conn.fetch(
                         f"SELECT source_id, text FROM fulltext WHERE collection_name = $1 "
                         f"AND source_id = ANY($2::text[]);",
                         collection_name,
-                        list(fulltext_ids)
+                        list(source_ids)
                     )
                 id_to_text = {row["source_id"]: row["text"] for row in rows}
 
                 for doc in results:
-                    ft_id = doc.metadata.get("fulltext_source_id")
+                    ft_id = doc.metadata.get("source_id")
                     if ft_id in id_to_text:
                         doc.metadata["fulltext"] = id_to_text[ft_id]
 
@@ -162,7 +162,7 @@ async def put_embeddings(insert_input: IngestInput):
     # Ingests a single item into the vector store, optionally storing raw text in SQL
     try:
         collection_name = insert_input.type or settings.OTOBO_AI_CHROMA_DEF_COL_NAME
-        fulltext_id = None
+        source_id = insert_input.source_id
 
         # Optional: store fulltext in relational DB for later retrieval
 
@@ -181,7 +181,6 @@ async def put_embeddings(insert_input: IngestInput):
                     insert_input.source_id,
                     fulltext
                 )
-                fulltext_id = insert_input.source_id
 
             # Select content types to embed (configurable)
             if insert_input.embed_content_types:
@@ -199,8 +198,8 @@ async def put_embeddings(insert_input: IngestInput):
 
                 # Add fulltext reference to metadata if available
                 for doc in all_splits:
-                    if fulltext_id is not None:
-                        doc.metadata["fulltext_source_id"] = fulltext_id
+                    if source_id:
+                        doc.metadata["source_id"] = source_id
                     if insert_input.labels:
                         doc.metadata["label"] = insert_input.labels[0]  # todo/WARNING: Currently only single labels are supported, so the first label in a list is used. Extend filter logic later
 
@@ -208,9 +207,9 @@ async def put_embeddings(insert_input: IngestInput):
                 vec_ids = await embed_store.aadd_documents(all_splits)
                 await conn.executemany(
                     "INSERT INTO source_vector_index_map (collection_name, source_id, vector_id) VALUES ($1, $2, $3)",
-                    [(insert_input.type, insert_input.source_id, vid) for vid in vec_ids]
+                    [(insert_input.type, source_id, vid) for vid in vec_ids]
                 )
-                logger.debug(f"wrote to index map: {insert_input.source_id}, {[vid for vid in vec_ids]}")
+                logger.debug(f"wrote to index map: {source_id}, {[vid for vid in vec_ids]}")
         return {"success": True}
 
     except Exception as e:
@@ -225,7 +224,6 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
         collection_name = batch_input.type or settings.OTOBO_AI_CHROMA_DEF_COL_NAME
         
         logger.info( f"ingest into collection {collection_name}" )
-        fulltext_ids = []
 
         if batch_input.has_labels:
             labels = []
@@ -236,20 +234,20 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
         # Optional fulltext storage
             if batch_input.store_fulltext:
                 fulltext_texts = []
-                fulltext_ids = []
+                source_ids = []
                 if batch_input.fulltext_types:
                     for content_set in batch_input.content:
                         fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in content_set.content_items if
                                                 item.type in batch_input.fulltext_types])
                         fulltext_texts.append(fulltext)
-                        fulltext_ids.append(content_set.source_id)
+                        source_ids.append(content_set.source_id)
                         if batch_input.has_labels:
                             labels.append(content_set.labels)
                 else:
                     for content_set in batch_input.content:
                         fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in content_set.content_items])
                         fulltext_texts.append(fulltext)
-                        fulltext_ids.append(content_set.source_id)
+                        source_ids.append(content_set.source_id)
                         if batch_input.has_labels:
                             labels.append(content_set.labels)
 
@@ -263,7 +261,7 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
                     FROM unnest($2::text[], $3::text[]) AS s(source_id, text)
                     """,
                     collection_name,
-                    fulltext_ids,
+                    source_ids,
                     fulltext_texts,
                 )
             elif batch_input.has_labels:
@@ -291,8 +289,8 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
 
                 # Attach correct fulltext ID to chunks
                 for doc in splits:
-                    if batch_input.store_fulltext and idx < len(fulltext_ids):
-                        doc.metadata["fulltext_source_id"] = fulltext_ids[idx]
+                    if content_set.source_id:
+                        doc.metadata["source_id"] = content_set.source_id
                     if batch_input.has_labels and idx < len(labels):
                         doc.metadata["label"] = labels[idx][0]  # todo/WARNING: Currently only single labels are supported, so the first label in a list is used. Extend filter logic later
 
