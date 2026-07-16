@@ -7,6 +7,9 @@ Each RAG module defines its own retrieval/generation logic and API schema, loade
 The system uses **LangGraph**, **LangChain**, and **ChromaDB** to support flexible embedding and LLM-powered generation.
 It exposes a REST API via **FastAPI** for ingesting content and interacting with configured RAGs.
 
+Further an MCP and a chat interface are included to enable agents to interface with an LLM directly that is capable to call actions in OTOBO.
+The chat interface is provided by https://github.com/open-webui/open-webui
+
 You may find documentation on how to use this with OTOBO here: https://doc.otobo.org
 
 ---
@@ -45,11 +48,8 @@ Create a `.env` file in the root directory to configure environment variables:
 cp .docker_compose_env_ai .env
 ```
 
-Edit the `.env` file to set your desired configuration options. For independent setup use
-
-```
-COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_standalone.yml
-```
+Edit the `.env` file to set your desired configuration options.
+The file is self-documented. 
 
 > [!IMPORTANT]
 > For usage with an OTOBO docker setups, docker compose v2 is required.
