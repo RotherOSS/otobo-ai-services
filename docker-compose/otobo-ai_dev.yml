@@ -3,7 +3,7 @@
 # See also https://github.com/RotherOSS/otobo-ai-services#
 
 services:
-  otobo-ai:
+  rag:
     # build from local Dockerfile
     build: ..
     image: !reset null

@@ -19,6 +19,7 @@ COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_otobo-dock
 # COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_standalone.yml # Use this for independent setup (OTOBO native installation)
 # COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_otobo-docker.yml:docker-compose/otobo-ai_dev.yml # for development
 
+
 # Parameters from this API server
 ################################
 # Token to auth this API, generate via `openssl rand -hex 32`
@@ -75,3 +76,44 @@ OTOBO_AI_PG_PORT=5432
 OTOBO_AI_PG_DB=fulltext
 OTOBO_AI_PG_USER=otobo_ai
 OTOBO_AI_PG_PW=your password
+
+
+# CHAT
+############################################
+# Source: https://docs.openwebui.com/reference/env-configuration/
+# Version: v0.10.0
+
+# The chat is provided by docker-compose/otobo-ai_chat.yml
+# To add the container to the stack you need to append it to
+# the COMPOSE_FILE on the top of this file. 
+
+# The first user is the admin
+# It may be used to setup user accounts
+WEBUI_ADMIN_EMAIL=""
+# maybe: openssl rand -hex 16
+WEBUI_ADMIN_PASSWORD=""
+
+# Open WebUI can to me served under a path,
+# we need to use a port (9000):
+# https://github.com/open-webui/open-webui/discussions/6650
+WEBUI_URL="https://fqdn:9000/"
+
+# If you are setting up an auth provider like 
+# ENABLE_SIGNUP=True
+
+# The browser setting and prompt are doing the 
+# majority of the heavy lifting.
+# DEFAULT_LOCALE=de
+# DEFAULT_LOCALE=en
+
+DEFAULT_FOLLOW_UP_GENERATION_PROMPT_TEMPLATE="
+### Task:
+Schlage 3-5 relevante Follow-Up-Fragen vor, die ein OTOBO-Agent
+zu diesem Ticket stellen würde:
+- Zeige den aktuellen Antwortvorschlag.
+- Fasse mir bitte das Ticket zusammen.
+- Was ist hier als nächstes zu tun?
+Basiere die Vorschläge auf dem Chatverlauf: {{MESSAGES}}
+"
+
+TOOL_SERVER_CONNECTIONS='[{"type":"mcp","url":"http://mcp:8765/mcp","auth_type":"none","key":"","config":{"enable":true},"info":{"id":"otobo","name":"OTOBO","description":"Das ist die Schnittstelle für einen KI-Assistenten um mit OTOBO zu kommunizieren. Zum Aufrug benötigst du eine OTOBO Session ID (otobo_sid) und die Ticket ID (ticket_id). Nutze das Tool um: Informationen über ein Ticket abzufragen. In dem Feld DynamicField_OTOBOAI findest du den Antwortvorschlag der KI. Du kannst den Antwortvorschlag anpassen."}}]'

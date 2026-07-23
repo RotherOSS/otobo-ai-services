@@ -4,7 +4,7 @@
 # See also dockerhub...
 
 services:
-  otobo-ai:
+  rag:
     networks:
       - otobo_default
 
