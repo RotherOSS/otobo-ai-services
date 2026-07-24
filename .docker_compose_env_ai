@@ -15,13 +15,21 @@ COMPOSE_PROJECT_NAME=otobo-ai
 # These files usually reside in the subdirectory docker-compose.
 # Additional services can be added by concatenating more files to COMPOSE_FILE.
 COMPOSE_PATH_SEPARATOR=:
+
 COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_otobo-docker.yml # if you run the OTOBO docker compose stack
 # COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_standalone.yml # Use this for independent setup (OTOBO native installation)
 # COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_otobo-docker.yml:docker-compose/otobo-ai_dev.yml # for development
 
+# docker-compose/otobo-ai_openwebui.yml
+# Optional: Adds a chat interface to the stack.
 
-# Parameters from this API server
+# docker-compose/otobo-ai_mcp.yml
+# Optional: Adds a MCP server to the stack.
+
+
+# RAG
 ################################
+
 # Token to auth this API, generate via `openssl rand -hex 32`
 OTOBO_AI_API_KEY=CHANGEME
 
@@ -33,13 +41,11 @@ OTOBO_AI_PORT=8000
 
 
 # Parameters for Vector Database
-###############################
 OTOBO_AI_CHROMA_DIR=/chroma
 OTOBO_AI_EMBEDDING_CHUNK_SIZE=1100
 OTOBO_AI_EMBEDDING_CHUNK_OVERLAP=100
 
 # Parameters for language models
-#####################
 # Optional: token to auth the llm server
 OTOBO_AI_LLM_API_KEY="api-key-to-the-llm-server"
 
@@ -61,7 +67,6 @@ OTOBO_AI_EMBEDDING_MODEL=qwen3-embedding:0.6b
 
 # Parameters for LANGFUSE
 # Optional: Keys for debugging
-#####################
 LANGFUSE_SECRET_KEY=""
 LANGFUSE_PUBLIC_KEY=""
 LANGFUSE_BASE_URL=""
@@ -70,7 +75,6 @@ LANGFUSE_BASE_URL=""
 # OTOBO_AI_LOG_LEVEL
 
 # Parameters for PostgreSQL
-#####################
 OTOBO_AI_PG_HOST=postgres
 OTOBO_AI_PG_PORT=5432
 OTOBO_AI_PG_DB=fulltext
@@ -85,7 +89,7 @@ OTOBO_AI_PG_PW=your password
 
 # The chat is provided by docker-compose/otobo-ai_chat.yml
 # To add the container to the stack you need to append it to
-# the COMPOSE_FILE on the top of this file. 
+# the COMPOSE_FILE on the top of this file.
 
 # The first user is the admin
 # It may be used to setup user accounts
@@ -98,10 +102,10 @@ WEBUI_ADMIN_PASSWORD=""
 # https://github.com/open-webui/open-webui/discussions/6650
 WEBUI_URL="https://fqdn:9000/"
 
-# If you are setting up an auth provider like 
+# If you are setting up an auth provider like
 # ENABLE_SIGNUP=True
 
-# The browser setting and prompt are doing the 
+# The browser setting and prompt are doing the
 # majority of the heavy lifting.
 # DEFAULT_LOCALE=de
 # DEFAULT_LOCALE=en
@@ -117,3 +121,14 @@ Basiere die Vorschläge auf dem Chatverlauf: {{MESSAGES}}
 "
 
 TOOL_SERVER_CONNECTIONS='[{"type":"mcp","url":"http://mcp:8765/mcp","auth_type":"none","key":"","config":{"enable":true},"info":{"id":"otobo","name":"OTOBO","description":"Das ist die Schnittstelle für einen KI-Assistenten um mit OTOBO zu kommunizieren. Zum Aufrug benötigst du eine OTOBO Session ID (otobo_sid) und die Ticket ID (ticket_id). Nutze das Tool um: Informationen über ein Ticket abzufragen. In dem Feld DynamicField_OTOBOAI findest du den Antwortvorschlag der KI. Du kannst den Antwortvorschlag anpassen."}}]'
+
+
+
+# MCP
+##################################################
+# https://github.com/RotherOSS/otobo-ai-mcp
+
+# Where is the agent interface of your OTOBO reachable?
+# This value is used to generate deep links to tickets in the chat interface
+OTOBO_MCP_PUBLIC_URL=https://localhost/otobo/index.pl
+
