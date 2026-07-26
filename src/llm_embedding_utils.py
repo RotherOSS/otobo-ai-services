@@ -326,7 +326,9 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
 
                 if not labels:
                     labels = [[]] * len(fulltext_texts)
+                logger.debug(labels)
                 labels_json = [json.dumps(l) for l in labels]
+                logger.debug(labels_json)
                 await conn.fetch(
                     """
                     INSERT INTO fulltext (collection_name, source_id, text, labels)
