@@ -4,7 +4,7 @@
 # Use this override to expose the port out of the docker network
 
 services:
-  otobo-ai:
+  rag:
     build: ..
     # Expose the port to localhost
     ports:
