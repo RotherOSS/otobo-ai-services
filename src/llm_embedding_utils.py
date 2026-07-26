@@ -13,6 +13,8 @@ from src.data_models.delete import DeleteInput
 
 from langchain.callbacks.base import BaseCallbackHandler
 
+from typing import Sequence
+
 
 class DebugHandler(BaseCallbackHandler):
     def on_llm_start(self, serialized, prompts, **kwargs):
