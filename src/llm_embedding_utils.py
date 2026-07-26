@@ -51,7 +51,11 @@ def get_vectorstore(with_embedding: bool = True, collection_name: str = settings
     )
 
 @logger.catch(reraise=True)
-async def purge_collection(with_embedding: bool = True, collection_name: str = settings.OTOBO_AI_CHROMA_DEF_COL_NAME):
+async def purge_collection(
+        with_embedding: bool = True,
+        collection_name: str = settings.OTOBO_AI_CHROMA_DEF_COL_NAME,
+        labels: Sequence[str] | None = None,
+):
     # Returns a Chroma vector store instance, optionally attaching an embedding function
     db_embedding = get_embeddingsmodel() if with_embedding else None
 
@@ -61,14 +65,40 @@ async def purge_collection(with_embedding: bool = True, collection_name: str = s
         persist_directory=settings.OTOBO_AI_CHROMA_DIR  # Local dir for vector DB persistence
     )
 
-    logger.info(f"Purge: {collection_name}")
-    
-    vector_store._client.delete_collection(collection_name)
+    logger.info(f"Purge: {collection_name}, labels={labels}")
+
+    if labels:
+        vector_store._collection.delete(
+            where={"label": {"$in": list(labels)}}
+        )
+    else:
+        vector_store._client.delete_collection(collection_name)
 
     pool = get_pg_pool()
     async with pool.acquire() as conn:
-        await conn.execute("DELETE FROM source_vector_index_map WHERE collection_name = $1 ", collection_name)
-        await conn.execute("DELETE FROM fulltext WHERE collection_name = $1 ", collection_name)
+        if labels:
+            await conn.execute(
+                """
+                DELETE FROM source_vector_index_map
+                WHERE collection_name = $1
+                  AND labels && $2::text[]
+                """,
+                collection_name,
+                labels,
+            )
+            await conn.execute(
+                """
+                DELETE FROM fulltext
+                WHERE collection_name = $1
+                  AND labels && $2::text[]
+                """,
+                collection_name,
+                labels,
+            )
+
+        else:
+            await conn.execute("DELETE FROM source_vector_index_map WHERE collection_name = $1 ", collection_name)
+            await conn.execute("DELETE FROM fulltext WHERE collection_name = $1 ", collection_name)
 
     return { "success": True  }
 
@@ -158,6 +188,40 @@ async def query_embeddings(retrieve: QueryInput):
 
 
 @logger.catch(reraise=True)
+async def _purge_source_ids(conn, vector_store, collection_name: str, source_ids: list[str]):
+    # Remove any existing vectors/fulltext for these source_ids so re-ingesting overwrites them
+    # instead of colliding with the (collection_name, source_id) primary keys.
+    source_ids = list(dict.fromkeys(sid for sid in source_ids if sid))
+    if not source_ids:
+        return
+
+    rows = await conn.fetch(
+        """
+        SELECT vector_id
+        FROM source_vector_index_map
+        WHERE collection_name = $1
+          AND source_id = ANY($2::text[])
+        """,
+        collection_name,
+        source_ids,
+    )
+    vec_ids = [r["vector_id"] for r in rows]
+    if vec_ids:
+        vector_store.delete(ids=vec_ids)
+
+    await conn.execute(
+        "DELETE FROM source_vector_index_map WHERE collection_name = $1 AND source_id = ANY($2::text[])",
+        collection_name,
+        source_ids,
+    )
+    await conn.execute(
+        "DELETE FROM fulltext WHERE collection_name = $1 AND source_id = ANY($2::text[])",
+        collection_name,
+        source_ids,
+    )
+
+
+@logger.catch(reraise=True)
 async def put_embeddings(insert_input: IngestInput):
     # Ingests a single item into the vector store, optionally storing raw text in SQL
     try:
@@ -168,6 +232,9 @@ async def put_embeddings(insert_input: IngestInput):
 
         pool = get_pg_pool()
         async with pool.acquire() as conn:
+            vector_store = get_vectorstore(with_embedding=False, collection_name=collection_name)
+            await _purge_source_ids(conn, vector_store, collection_name, [insert_input.source_id])
+
             if insert_input.store_fulltext:
                 if insert_input.fulltext_types:
                     fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in insert_input.content if
@@ -176,10 +243,11 @@ async def put_embeddings(insert_input: IngestInput):
                     fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in insert_input.content])
 
                 await conn.fetchrow(
-                    "INSERT INTO fulltext (collection_name, source_id, text) VALUES ($1, $2, $3)",
+                    "INSERT INTO fulltext (collection_name, source_id, text, labels) VALUES ($1, $2, $3, $4)",
                     collection_name,
                     insert_input.source_id,
-                    fulltext
+                    fulltext,
+                    insert_input.labels if insert_input.labels else []
                 )
 
             # Select content types to embed (configurable)
@@ -206,8 +274,8 @@ async def put_embeddings(insert_input: IngestInput):
                 embed_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
                 vec_ids = await embed_store.aadd_documents(all_splits)
                 await conn.executemany(
-                    "INSERT INTO source_vector_index_map (collection_name, source_id, vector_id) VALUES ($1, $2, $3)",
-                    [(insert_input.type, source_id, vid) for vid in vec_ids]
+                    "INSERT INTO source_vector_index_map (collection_name, source_id, vector_id, labels) VALUES ($1, $2, $3, $4)",
+                    [(insert_input.type, source_id, vid, insert_input.labels) for vid in vec_ids]
                 )
                 logger.debug(f"wrote to index map: {source_id}, {[vid for vid in vec_ids]}")
         return {"success": True}
@@ -225,12 +293,14 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
         
         logger.info( f"ingest into collection {collection_name}" )
 
-        if batch_input.has_labels:
-            labels = []
-            logger.info( f"labels: {labels}" )
+        labels = []
 
         pool = get_pg_pool()
         async with pool.acquire() as conn:
+            vector_store = get_vectorstore(with_embedding=False, collection_name=collection_name)
+            batch_source_ids = [content_set.source_id for content_set in batch_input.content]
+            await _purge_source_ids(conn, vector_store, collection_name, batch_source_ids)
+
         # Optional fulltext storage
             if batch_input.store_fulltext:
                 fulltext_texts = []
@@ -251,14 +321,17 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
                         if batch_input.has_labels:
                             labels.append(content_set.labels)
 
+                if not labels:
+                    labels = [[]] * len(fulltext_texts)
                 await conn.fetch(
                     """
-                    INSERT INTO fulltext (collection_name, source_id, text)
+                    INSERT INTO fulltext (collection_name, source_id, text, labels)
                     SELECT
                         $1,
                         s.source_id,
-                        s.text
-                    FROM unnest($2::text[], $3::text[]) AS s(source_id, text)
+                        s.text,
+                        s.labels
+                    FROM unnest($2::text[], $3::text[], $4::text[][]) AS s(source_id, text, labels)
                     """,
                     collection_name,
                     source_ids,
@@ -271,6 +344,7 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
             # Prepare documents for embedding
             embed_docs = []
             source_ids = []
+            labels_list = []
             text_splitter = RecursiveCharacterTextSplitter(
                 chunk_size=settings.embedding_chunk_size,
                 chunk_overlap=settings.embedding_chunk_overlap,
@@ -296,13 +370,17 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
 
                 embed_docs.extend(splits)
                 source_ids.extend([content_set.source_id] * len(splits))
+                if batch_input.has_labels:
+                    labels_list.extend([labels[idx]] * len(splits))
+                else:
+                    labels_list.extend([[]] * len(splits))
 
             embed_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
             logger.info( f"embedding into {collection_name} : {embed_docs}" )
             vec_ids = await embed_store.aadd_documents(embed_docs)
             await conn.executemany(
-                "INSERT INTO source_vector_index_map (collection_name, source_id, vector_id) VALUES ($1, $2, $3)",
-                [(batch_input.type, sid, vid) for sid, vid in zip(source_ids, vec_ids)]
+                "INSERT INTO source_vector_index_map (collection_name, source_id, vector_id, labels) VALUES ($1, $2, $3, $4)",
+                [(batch_input.type, sid, vid, ll) for sid, vid, ll in zip(source_ids, vec_ids, labels_list)]
             )
 
         return {"success": True}
