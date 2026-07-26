@@ -3,6 +3,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_chroma import Chroma
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from loguru import logger
+import json
 
 # Local imports from the project
 from src.settings import AppSettings
@@ -325,6 +326,9 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
 
                 if not labels:
                     labels = [[]] * len(fulltext_texts)
+                logger.debug(labels)
+                labels_json = [json.dumps(l) for l in labels]
+                logger.debug(labels_json)
                 await conn.fetch(
                     """
                     INSERT INTO fulltext (collection_name, source_id, text, labels)
@@ -332,12 +336,13 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
                         $1,
                         s.source_id,
                         s.text,
-                        s.labels
-                    FROM unnest($2::text[], $3::text[], $4::text[][]) AS s(source_id, text, labels)
+                        ARRAY(SELECT jsonb_array_elements_text(s.labels))
+                    FROM unnest($2::text[], $3::text[], $4::jsonb[]) AS s(source_id, text, labels)
                     """,
                     collection_name,
                     source_ids,
                     fulltext_texts,
+                    labels_json
                 )
             elif batch_input.has_labels:
                 for content_set in batch_input.content:
@@ -388,7 +393,7 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
         return {"success": True}
 
     except Exception as e:
-        logger.error(f"Error inserting embeddings: {e}")
+        logger.exception(f"Error inserting embeddings: {e}")
         return {"success": False, "error": str(e)}
 
 #
