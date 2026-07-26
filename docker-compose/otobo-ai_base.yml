@@ -4,7 +4,7 @@
 # See also dockerhub...
 
 services:
-  otobo-ai:
+  rag:
     image: ${OTOBO_IMAGE_OTOBO_AI:-rotheross/otobo-ai-services:latest}
     restart: always
     depends_on:
