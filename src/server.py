@@ -24,7 +24,7 @@ from src.data_models.ingest import IngestInput, IngestInputBatch
 from src.data_models.retrieve import QueryInput
 from src.data_models.delete import DeleteInput
 import importlib
-from src.db import init_pg_pool, close_pg_pool
+from src.db import init_db_pool, close_db_pool
 
 # Load app settings from environment or config
 settings = AppSettings()
@@ -44,11 +44,17 @@ async def lifespan(app: FastAPI):
         rotation="1 MB",
     )
     logger.success(f"Starting server with loglevel: {settings.OTOBO_AI_LOG_LEVEL}")
-    await init_pg_pool(settings.OTOBO_AI_PG_DSN)
+    await init_db_pool(
+        host=settings.OTOBO_AI_DB_HOST,
+        port=settings.OTOBO_AI_DB_PORT,
+        user=settings.OTOBO_AI_DB_USER,
+        password=settings.OTOBO_AI_DB_PW,
+        database=settings.OTOBO_AI_DB_NAME,
+    )
 
     yield  # Main app runs here
 
-    await close_pg_pool()
+    await close_db_pool()
     logger.success("Server has shut down gracefully.")
 
 
@@ -173,7 +179,7 @@ async def post_query(retrieve: QueryInput):
 async def put(embeds: IngestInput):
     return await put_embeddings(embeds)
 
-# purge the whole vector store + postgres
+# purge the whole vector store + database
 @app.delete(
     "/otobo-ai/embedding/purge",
     name="Ingest Purge",
@@ -184,7 +190,7 @@ async def purge():
     logger.error(f"purge all");
     return await purge_vectorstore(True)
 
-# purge the a collection from vector store + postgres
+# purge the a collection from vector store + database
 @app.delete(
     "/otobo-ai/embedding/purge/{collection_name}",
     name="Ingest Purge",
