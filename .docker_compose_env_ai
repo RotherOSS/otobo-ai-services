@@ -74,12 +74,12 @@ LANGFUSE_BASE_URL=""
 # OTOBO_AI_LOG_FILE
 # OTOBO_AI_LOG_LEVEL
 
-# Parameters for PostgreSQL
-OTOBO_AI_PG_HOST=postgres
-OTOBO_AI_PG_PORT=5432
-OTOBO_AI_PG_DB=fulltext
-OTOBO_AI_PG_USER=otobo_ai
-OTOBO_AI_PG_PW=your password
+# Parameters for MariaDB
+OTOBO_AI_DB_HOST=mariadb
+OTOBO_AI_DB_PORT=3306
+OTOBO_AI_DB_NAME=fulltext
+OTOBO_AI_DB_USER=otobo_ai
+OTOBO_AI_DB_PW=your password
 
 
 # CHAT

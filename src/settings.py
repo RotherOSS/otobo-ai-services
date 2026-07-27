@@ -50,13 +50,11 @@ class AppSettings:
 
         self.OTOBO_AI_LOG_FILE = os.getenv("OTOBO_AI_LOG_FILE", "./data/log/apilog.log")
         self.OTOBO_AI_LOG_LEVEL = os.getenv("OTOBO_AI_LOG_LEVEL", "DEBUG")
-        self.OTOBO_AI_PG_HOST = os.getenv("OTOBO_AI_PG_HOST", "postgres")
-        self.OTOBO_AI_PG_PORT = os.getenv("OTOBO_AI_PG_PORT", "5432")
-        self.OTOBO_AI_PG_DB = os.getenv("OTOBO_AI_PG_DB", "fulltext")
-        self.OTOBO_AI_PG_USER = os.getenv("OTOBO_AI_PG_USER", "otobo_ai")
-        self.OTOBO_AI_PG_PW = os.getenv("OTOBO_AI_PG_PW")
-        self.OTOBO_AI_PG_DSN = (f"postgresql://{self.OTOBO_AI_PG_USER}:{self.OTOBO_AI_PG_PW}"
-                                f"@{self.OTOBO_AI_PG_HOST}:{self.OTOBO_AI_PG_PORT}/{self.OTOBO_AI_PG_DB}")
+        self.OTOBO_AI_DB_HOST = os.getenv("OTOBO_AI_DB_HOST", "mariadb")
+        self.OTOBO_AI_DB_PORT = os.getenv("OTOBO_AI_DB_PORT", "3306")
+        self.OTOBO_AI_DB_NAME = os.getenv("OTOBO_AI_DB_NAME", "fulltext")
+        self.OTOBO_AI_DB_USER = os.getenv("OTOBO_AI_DB_USER", "otobo_ai")
+        self.OTOBO_AI_DB_PW = os.getenv("OTOBO_AI_DB_PW")
 
         self.embedding_chunk_size = int(os.getenv("OTOBO_AI_EMBEDDING_CHUNK_SIZE", "1100"))
         self.embedding_chunk_overlap = int(os.getenv("OTOBO_AI_EMBEDDING_CHUNK_OVERLAP", "100"))

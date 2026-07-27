@@ -6,6 +6,23 @@
 services:
   rag:
     build: ..
+    depends_on:
+      - mariadb
     # Expose the port to localhost
     ports:
       - "127.0.0.1:${OTOBO_AI_PORT:-8000}:${OTOBO_AI_PORT:-8000}"
+
+  mariadb:
+    image: mariadb:11
+    environment:
+      MARIADB_DATABASE: ${OTOBO_AI_DB_NAME}
+      MARIADB_USER: ${OTOBO_AI_DB_USER}
+      MARIADB_PASSWORD: ${OTOBO_AI_DB_PW}
+      MARIADB_RANDOM_ROOT_PASSWORD: "yes"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ../src/init-sql:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+
+volumes:
+  mariadb_data: {}
