@@ -192,8 +192,8 @@ async def purge():
     dependencies=[Depends(get_api_key)],
 )
 async def purge_named_collection(collection_name):
-    logger.error(f"purge collection {collection_name}");
-    return await purge_collection(True,collection_name)
+    logger.error(f"purge collection {collection_name}")
+    return await purge_collection(True, collection_name)
 
 
 # Ingest a batch of items for embedding

@@ -1,4 +1,7 @@
-from typing import List
+#  Default RAG Version 1
+
+from typing import List, Annotated
+import operator
 
 from langchain_core.documents import Document
 from langgraph.graph import START, END, StateGraph
@@ -28,6 +31,8 @@ class GraphState(TypedDict):
     docs: List[Document] | None
     ticket_chunks: List[Document] | None
     ticket_pairs: List[Document] | None
+    source_ids_raw: Annotated[list[str], operator.add]
+    source_ids: list[str] | None
     score: str | None
 
 
@@ -43,6 +48,12 @@ def retrieve_function_generator(query_input: QueryInput, output: str):
         query_input.labels = use_labels
         results = await query_embeddings(query_input)
 
+        source_ids = [
+            result.metadata["source_id"]
+            for result in results
+            if result.metadata.get("source_id")
+        ]
+
         # Decide what to return: full text or just page content
         if query_input.retrieve_fulltext:
             results = [result.metadata["fulltext"] for result in results]
@@ -51,7 +62,10 @@ def retrieve_function_generator(query_input: QueryInput, output: str):
 
         logger.info(results)
 
-        return {output: results}
+        return {
+            output: results,
+            "source_ids_raw": source_ids
+        }
 
     return retrieve
 
@@ -62,7 +76,10 @@ def retrieve_function_generator(query_input: QueryInput, output: str):
 def generate(state: GraphState):
     logger.info("---Generating---")
     generation = rag_chain.invoke(state)
-    return {"generation": generation}
+    return {
+        "generation": generation,
+        "source_ids": list(dict.fromkeys(state["source_ids_raw"]))
+    }
 
 
 # Scores the generated output (if requested)
@@ -102,10 +119,12 @@ workflow.add_edge(START, "retrieve_faq")
 workflow.add_edge(START, "retrieve_documentation")
 workflow.add_edge(START, "retrieve_full_ticket_chunks")
 workflow.add_edge(START, "retrieve_ticket_pairs")
+
 workflow.add_edge("retrieve_faq", "generate")
 workflow.add_edge("retrieve_documentation", "generate")
 workflow.add_edge("retrieve_full_ticket_chunks", "generate")
 workflow.add_edge("retrieve_ticket_pairs", "generate")
+
 workflow.add_edge("generate", "evaluate")
 workflow.add_edge("generate", END)
 workflow.add_edge("evaluate", END)

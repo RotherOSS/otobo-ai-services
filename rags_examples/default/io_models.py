@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel
 
 
@@ -13,4 +13,5 @@ class RAGOutput(BaseModel):
     question: str
     generation: Optional[str] = None
     score: Optional[str] = None
+    source_ids: Optional[List[str]] = None
 
