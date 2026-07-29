@@ -1,4 +1,4 @@
-CREATE TABLE fulltext (
+CREATE TABLE fulltext_documents (
   collection_name VARCHAR(255) NOT NULL,
   source_id VARCHAR(255) NOT NULL,
   text LONGTEXT NOT NULL,

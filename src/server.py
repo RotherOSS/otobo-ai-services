@@ -166,6 +166,7 @@ register_rags(app)
     dependencies=[Depends(get_api_key)],
 )
 async def post_query(retrieve: QueryInput):
+    logger.info(retrieve)
     return await query_embeddings(retrieve)
 
 

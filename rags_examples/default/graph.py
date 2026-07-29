@@ -36,7 +36,8 @@ class GraphState(TypedDict):
     score: str | None
 
 
-use_labels = ["default"]
+# use_labels = ["default"]
+use_labels = []
 
 # Creates a retrieval function for the given input source and maps results to output key
 def retrieve_function_generator(query_input: QueryInput, output: str):

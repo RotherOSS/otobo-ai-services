@@ -92,7 +92,7 @@ async def purge_collection(
             )
             await conn.execute(
                 """
-                DELETE FROM fulltext
+                DELETE FROM fulltext_documents
                 WHERE collection_name = %s
                   AND JSON_OVERLAPS(labels, %s)
                 """,
@@ -102,7 +102,7 @@ async def purge_collection(
 
         else:
             await conn.execute("DELETE FROM source_vector_index_map WHERE collection_name = %s", collection_name)
-            await conn.execute("DELETE FROM fulltext WHERE collection_name = %s", collection_name)
+            await conn.execute("DELETE FROM fulltext_documents WHERE collection_name = %s", collection_name)
 
     return { "success": True  }
 
@@ -172,7 +172,7 @@ async def query_embeddings(retrieve: QueryInput):
                 pool = get_db_pool()
                 async with pool.acquire() as conn:
                     rows = await conn.fetch(
-                        "SELECT source_id, text FROM fulltext WHERE collection_name = %s "
+                        "SELECT source_id, text FROM fulltext_documents WHERE collection_name = %s "
                         "AND source_id IN %s",
                         collection_name,
                         tuple(source_ids)
@@ -217,7 +217,7 @@ async def _purge_source_ids(conn, vector_store, collection_name: str, source_ids
         tuple(source_ids),
     )
     await conn.execute(
-        "DELETE FROM fulltext WHERE collection_name = %s AND source_id IN %s",
+        "DELETE FROM fulltext_documents WHERE collection_name = %s AND source_id IN %s",
         collection_name,
         tuple(source_ids),
     )
@@ -245,7 +245,7 @@ async def put_embeddings(insert_input: IngestInput):
                     fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in insert_input.content])
 
                 await conn.execute(
-                    "INSERT INTO fulltext (collection_name, source_id, text, labels) VALUES (%s, %s, %s, %s)",
+                    "INSERT INTO fulltext_documents (collection_name, source_id, text, labels) VALUES (%s, %s, %s, %s)",
                     collection_name,
                     insert_input.source_id,
                     fulltext,
@@ -327,7 +327,7 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
                     labels = [[]] * len(fulltext_texts)
                 labels_json = [json.dumps(l) for l in labels]
                 await conn.executemany(
-                    "INSERT INTO fulltext (collection_name, source_id, text, labels) VALUES (%s, %s, %s, %s)",
+                    "INSERT INTO fulltext_documents (collection_name, source_id, text, labels) VALUES (%s, %s, %s, %s)",
                     [(collection_name, sid, text, lbl) for sid, text, lbl in zip(source_ids, fulltext_texts, labels_json)]
                 )
             elif batch_input.has_labels:
@@ -467,14 +467,14 @@ async def delete_embeddings_by_id(delete: DeleteInput):
 
             await conn.execute(
                 """
-                DELETE FROM fulltext
+                DELETE FROM fulltext_documents
                 WHERE collection_name = %s
                   AND source_id IN %s
                 """,
                 collection_name,
                 tuple(source_ids),
             )
-            logger.debug(f"deleted in fulltext: {source_ids}, {vec_ids}")
+            logger.debug(f"deleted in fulltext_documents: {source_ids}, {vec_ids}")
         return {
             "success": True
         }

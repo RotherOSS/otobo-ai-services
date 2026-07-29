@@ -77,9 +77,9 @@ LANGFUSE_BASE_URL=""
 # Parameters for MariaDB
 OTOBO_AI_DB_HOST=mariadb
 OTOBO_AI_DB_PORT=3306
-OTOBO_AI_DB_NAME=fulltext
+OTOBO_AI_DB_NAME=db_name
 OTOBO_AI_DB_USER=otobo_ai
-OTOBO_AI_DB_PW=your password
+OTOBO_AI_DB_PW=mariadbpw
 
 
 # CHAT
