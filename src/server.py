@@ -206,7 +206,7 @@ async def purge_named_collection(collection_name):
 async def put(embeds: IngestInputBatch):    
     return await put_embeddings_batch(embeds)
 
-@app.delete(
+@app.post(
     "/otobo-ai/embedding/delete",
     name="Delete Embedding",
     description="Delete embedding entries by source ID.",
