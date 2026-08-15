@@ -34,10 +34,11 @@ class GraphState(TypedDict):
     source_ids_raw: Annotated[list[str], operator.add]
     source_ids: list[str] | None
     score: str | None
+    label: str | None
 
 
-# use_labels = ["default"]
-use_labels = []
+# Fallback label used when the caller doesn't supply one.
+DEFAULT_LABEL = "default"
 
 # Creates a retrieval function for the given input source and maps results to output key
 def retrieve_function_generator(query_input: QueryInput, output: str):
@@ -46,7 +47,7 @@ def retrieve_function_generator(query_input: QueryInput, output: str):
     async def retrieve(state: GraphState):
         logger.info(f"---Retrieving from {query_input.type}---")
         query_input.query_text = state["question"]
-        query_input.labels = use_labels
+        query_input.label = state.get("label") or DEFAULT_LABEL
         results = await query_embeddings(query_input)
 
         source_ids = [
@@ -100,16 +101,16 @@ workflow = StateGraph(GraphState)
 # Define multiple retrieval steps for different sources
 # Do not set n_results to 0!
 workflow.add_node("retrieve_faq", retrieve_function_generator(
-    QueryInput(query_text="", type="faqs", retrieve_fulltext=True, n_results=3, labels=[]), "faqs"))
+    QueryInput(query_text="", type="faqs", retrieve_fulltext=True, n_results=3, label=DEFAULT_LABEL), "faqs"))
 
 workflow.add_node("retrieve_documentation", retrieve_function_generator(
-    QueryInput(query_text="", type="docs", retrieve_fulltext=False, n_results=3, labels=[]), "docs"))
+    QueryInput(query_text="", type="docs", retrieve_fulltext=False, n_results=3, label=DEFAULT_LABEL), "docs"))
 
 workflow.add_node("retrieve_full_ticket_chunks", retrieve_function_generator(
-    QueryInput(query_text="", type="ticket_chunks", retrieve_fulltext=False, n_results=3, labels=[]), "ticket_chunks"))
+    QueryInput(query_text="", type="ticket_chunks", retrieve_fulltext=False, n_results=3, label=DEFAULT_LABEL), "ticket_chunks"))
 
 workflow.add_node("retrieve_ticket_pairs", retrieve_function_generator(
-    QueryInput(query_text="", type="ticket_pairs", retrieve_fulltext=True, n_results=2, labels=[]), "ticket_pairs"))
+    QueryInput(query_text="", type="ticket_pairs", retrieve_fulltext=True, n_results=2, label=DEFAULT_LABEL), "ticket_pairs"))
 
 # Generation and optional evaluation step
 workflow.add_node("generate", generate)

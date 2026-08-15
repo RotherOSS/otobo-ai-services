@@ -188,7 +188,7 @@ async def put(embeds: IngestInput):
     dependencies=[Depends(get_api_key)],
 )
 async def purge():
-    logger.error(f"purge all");
+    logger.error(f"purge all")
     return await purge_vectorstore(True)
 
 # purge the a collection from vector store + database

@@ -6,6 +6,7 @@ from pydantic import BaseModel
 class RAGInput(BaseModel):
     question: str
     do_scoring: Optional[bool] = False
+    label: str
 
 
 # Output format for the RAG response
