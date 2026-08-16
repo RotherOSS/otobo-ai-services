@@ -1,6 +1,8 @@
 import os
 from contextlib import asynccontextmanager
-from typing import Any, List
+from typing import Sequence
+from typing import Sequence
+from typing import Any, List, Sequence
 
 from fastapi import Depends, FastAPI
 from fastapi.responses import RedirectResponse
@@ -198,9 +200,9 @@ async def purge():
     description="Purge the named collection from vector store.",
     dependencies=[Depends(get_api_key)],
 )
-async def purge_named_collection(collection_name):
+async def purge_named_collection(collection_name, labels: Sequence[str]):
     logger.error(f"purge collection {collection_name}")
-    return await purge_collection(True, collection_name)
+    return await purge_collection(collection_name, labels)
 
 
 # Ingest a batch of items for embedding

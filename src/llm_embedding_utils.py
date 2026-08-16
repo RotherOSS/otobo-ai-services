@@ -192,7 +192,6 @@ def get_vectorstore(with_embedding: bool = True, collection_name: str = settings
 
 @logger.catch(reraise=True)
 async def purge_collection(
-        with_embedding: bool = True,
         collection_name: str = settings.OTOBO_AI_CHROMA_DEF_COL_NAME,
         labels: Sequence[str] | None = None,
 ):
@@ -273,7 +272,7 @@ async def purge_vectorstore(with_embedding: bool = True):
     collections = [ "faqs", "ticket_pairs", "ticket_chunks", "docs"  ]
     for collection in collections:
 
-        await purge_collection( with_embedding=with_embedding, collection_name=collection )
+        await purge_collection(with_embedding=with_embedding, collection_name=collection )
 
     return { "success": True  }
 
