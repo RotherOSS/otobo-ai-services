@@ -18,7 +18,7 @@ class IngestInput(BaseModel):
     store_fulltext: bool = False  # If true, stores the raw input text in the database.
     fulltext_types: Optional[List[str]] = None  # Specifies which content types to store in full.
     embed_content_types: Optional[List[str]] = None  # Specifies which content types to embed for retrieval.
-    source_id: str = None
+    source_id: str
     labels: Optional[List[str]] = None
     content: List[ContentItem]  # A list of content items to ingest.
 

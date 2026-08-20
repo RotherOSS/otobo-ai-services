@@ -1,8 +1,6 @@
 import os
 from contextlib import asynccontextmanager
-from typing import Sequence
-from typing import Sequence
-from typing import Any, List, Sequence
+from typing import Any, List
 
 from fastapi import Depends, FastAPI
 from fastapi.responses import RedirectResponse
@@ -25,6 +23,7 @@ from src.llm_embedding_utils import (
 from src.data_models.ingest import IngestInput, IngestInputBatch
 from src.data_models.retrieve import QueryInput
 from src.data_models.delete import DeleteInput
+from src.data_models.purge import PurgeCollectionInput
 import importlib
 from src.db import init_db_pool, close_db_pool
 
@@ -103,8 +102,36 @@ def register_rags(app: FastAPI):
                 path=f"/otobo-ai/{entry}",
                 dependencies=[Depends(get_api_key)],
             )
+
+            # Add a parallel endpoint that reuses the RAG's own context lookup
+            # but only returns source_ids, grouped by type, without generating.
+            if hasattr(graph_module, "source_ids_graph") and all(
+                hasattr(io_module, attr) for attr in ("GetSourceIdsInput", "SourceIdsByType")
+            ):
+                register_source_ids_route(
+                    app, entry, graph_module.source_ids_graph, io_module.GetSourceIdsInput, io_module.SourceIdsByType
+                )
+            else:
+                logger.warning(
+                    f"{entry} is missing source_ids_graph, GetSourceIdsInput or SourceIdsByType; "
+                    "skipping get_source_ids route"
+                )
         except (ImportError, AttributeError) as e:
             logger.error(f"Failed to load graph: {e}")
+
+
+# Registers the `/otobo-ai/{rag_name}/get_source_ids` endpoint for a RAG.
+def register_source_ids_route(app: FastAPI, rag_name: str, source_ids_graph, input_type, output_entry_type):
+    @app.post(
+        f"/otobo-ai/{rag_name}/get_source_ids",
+        name=f"{rag_name} Get Source IDs",
+        description="Runs the RAG's context lookup and returns only the retrieved source_ids, grouped by type.",
+        response_model=List[output_entry_type],
+        dependencies=[Depends(get_api_key)],
+    )
+    async def get_source_ids(payload: input_type):
+        result = await source_ids_graph.ainvoke(payload.model_dump())
+        return result["source_ids_by_type"]
 
 
 # FastAPI app with configured metadata and lifecycle
@@ -193,16 +220,16 @@ async def purge():
     logger.error(f"purge all")
     return await purge_vectorstore(True)
 
-# purge the a collection from vector store + database
-@app.delete(
-    "/otobo-ai/embedding/purge/{collection_name}",
-    name="Ingest Purge",
+# purge a collection (optionally scoped to labels) from vector store + database
+@app.post(
+    "/otobo-ai/embedding/purge-collection",
+    name="Purge Collection",
     description="Purge the named collection from vector store.",
     dependencies=[Depends(get_api_key)],
 )
-async def purge_named_collection(collection_name, labels: Sequence[str]):
-    logger.error(f"purge collection {collection_name}")
-    return await purge_collection(collection_name, labels)
+async def purge_named_collection(payload: PurgeCollectionInput):
+    logger.error(f"purge collection {payload.type}")
+    return await purge_collection(payload.type, payload.labels)
 
 
 # Ingest a batch of items for embedding
@@ -215,7 +242,7 @@ async def purge_named_collection(collection_name, labels: Sequence[str]):
 async def put(embeds: IngestInputBatch):    
     return await put_embeddings_batch(embeds)
 
-@app.delete(
+@app.post(
     "/otobo-ai/embedding/delete",
     name="Delete Embedding",
     description="Delete embedding entries by source ID.",
