@@ -32,8 +32,8 @@ class GraphState(TypedDict):
     ticket_chunks: List[Document] | None
     ticket_pairs: List[Document] | None
     types_n: list | None
-    source_ids_raw: Annotated[list[str], operator.add]
-    source_ids: list[str] | None
+    similarity_threshold: float | None
+    source_ids: list[dict] | None
     source_ids_by_type_raw: Annotated[list[dict], operator.add]
     source_ids_by_type: list[dict] | None
     score: str | None
@@ -57,6 +57,23 @@ def _resolve_n_results(types_n, type_name: str, default_n: int) -> int:
     return default_n
 
 
+# Groups the per-node source_id entries into one entry per collection type,
+# deduplicated by source_id (first occurrence wins).
+def _group_source_ids_by_type(raw_entries: list[dict]) -> list[dict]:
+    grouped: dict[str, list[dict]] = {}
+    for entry in raw_entries:
+        grouped.setdefault(entry["type"], [])
+        grouped[entry["type"]] += entry["source_ids"]
+
+    result = []
+    for type_name, entries in grouped.items():
+        deduped: dict[str, dict] = {}
+        for e in entries:
+            deduped.setdefault(e["source_id"], e)
+        result.append({"type": type_name, "source_ids": list(deduped.values())})
+    return result
+
+
 # Creates a retrieval function for the given input source and maps results to output key
 def retrieve_function_generator(query_input: QueryInput, output: str):
     default_n_results = query_input.n_results
@@ -75,24 +92,29 @@ def retrieve_function_generator(query_input: QueryInput, output: str):
             label=state.get("label") or DEFAULT_LABEL,
         ))
 
-        source_ids = [
-            result.metadata["source_id"]
+        # Drop entries scoring below the threshold: they are used neither as context
+        # for the prompt nor reported as source_ids.
+        threshold = state.get("similarity_threshold")
+        if threshold is not None:
+            results = [result for result in results if result.metadata.get("score", 0.0) >= threshold]
+
+        source_id_entries = [
+            {"source_id": result.metadata["source_id"], "score": result.metadata.get("score")}
             for result in results
             if result.metadata.get("source_id")
         ]
 
         # Decide what to return: full text or just page content
         if query_input.retrieve_fulltext:
-            results = [result.metadata["fulltext"] for result in results]
+            texts = [result.metadata["fulltext"] for result in results]
         else:
-            results = [result.page_content for result in results]
+            texts = [result.page_content for result in results]
 
-        logger.info(results)
+        logger.info(texts)
 
         return {
-            output: results,
-            "source_ids_raw": source_ids,
-            "source_ids_by_type_raw": [{"type": query_input.type, "source_ids": source_ids}],
+            output: texts,
+            "source_ids_by_type_raw": [{"type": query_input.type, "source_ids": source_id_entries}],
         }
 
     return retrieve
@@ -104,10 +126,7 @@ def retrieve_function_generator(query_input: QueryInput, output: str):
 def generate(state: GraphState):
     logger.info("---Generating---")
     generation = rag_chain.invoke(state)
-    return {
-        "generation": generation,
-        "source_ids": list(dict.fromkeys(state["source_ids_raw"]))
-    }
+    return {"generation": generation}
 
 
 # Scores the generated output (if requested)
@@ -125,17 +144,8 @@ def evaluate(state: GraphState):
 @logger.catch(reraise=True)
 def collect_source_ids(state: GraphState):
     logger.info("---Collecting source ids by type---")
-    grouped: dict[str, list[str]] = {}
-    for entry in state.get("source_ids_by_type_raw", []):
-        grouped.setdefault(entry["type"], [])
-        grouped[entry["type"]] += entry["source_ids"]
-
-    return {
-        "source_ids_by_type": [
-            {"type": type_name, "source_ids": list(dict.fromkeys(ids))}
-            for type_name, ids in grouped.items()
-        ]
-    }
+    grouped = _group_source_ids_by_type(state.get("source_ids_by_type_raw", []))
+    return {"source_ids": grouped, "source_ids_by_type": grouped}
 
 
 # Retrieval steps shared by both the full RAG graph and the source_ids-only graph
@@ -154,18 +164,21 @@ workflow = StateGraph(GraphState)
 for node_name, query_input, output_key in RETRIEVAL_NODES:
     workflow.add_node(node_name, retrieve_function_generator(query_input, output_key))
 
-# Generation and optional evaluation step
+# Generation, optional evaluation, and source_ids collection, all fed by retrieval
 workflow.add_node("generate", generate)
 workflow.add_node("evaluate", evaluate)
+workflow.add_node("collect_source_ids", collect_source_ids)
 
 # Define edges (execution order)
 for node_name, _, _ in RETRIEVAL_NODES:
     workflow.add_edge(START, node_name)
     workflow.add_edge(node_name, "generate")
+    workflow.add_edge(node_name, "collect_source_ids")
 
 workflow.add_edge("generate", "evaluate")
 workflow.add_edge("generate", END)
 workflow.add_edge("evaluate", END)
+workflow.add_edge("collect_source_ids", END)
 
 # Compile into executable graph
 graph = workflow.compile()

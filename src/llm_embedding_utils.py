@@ -311,7 +311,14 @@ async def query_embeddings(retrieve: QueryInput):
 
         logger.info( f"query_embeddings from {collection_name} (label={retrieve.label})" )
         vector_store = get_vectorstore(with_embedding=True, collection_name=physical_name)
-        results = await vector_store.asimilarity_search(query=retrieve.query_text, k=retrieve.n_results)
+        results_with_scores = await vector_store.asimilarity_search_with_relevance_scores(
+            query=retrieve.query_text, k=retrieve.n_results
+        )
+        results = []
+        for doc, score in results_with_scores:
+            logger.info(f"score={score!r}, type={type(score)}")
+            doc.metadata["score"] = score
+            results.append(doc)
 
         # Optionally enrich results with full text from the SQL database
         if retrieve.retrieve_fulltext:
