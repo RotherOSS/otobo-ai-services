@@ -85,7 +85,10 @@ OTOBO_AI_PG_PW=your password
 # CHAT
 ############################################
 # Source: https://docs.openwebui.com/reference/env-configuration/
-# Version: v0.10.0
+
+# Image version for downstream updates
+# See: https://hub.docker.com/r/openwebui/open-webui
+# OPENWEBUI_IMAGE_VERSION=0.11.2-slim
 
 # The chat is provided by docker-compose/otobo-ai_chat.yml
 # To add the container to the stack you need to append it to
