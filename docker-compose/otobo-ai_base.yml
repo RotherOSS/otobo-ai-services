@@ -6,7 +6,7 @@
 services:
   rag:
     image: ${OTOBO_IMAGE_OTOBO_AI:-rotheross/otobo-ai-services:latest}
-    restart: always
+    restart: unless-stopped
     depends_on:
       - postgres
     env_file:
