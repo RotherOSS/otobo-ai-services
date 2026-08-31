@@ -1,6 +1,7 @@
 services:
   mcp:
     image: rotheross/otobo-ai-mcp:latest
+    restart: unless-stopped
     networks:
       - otobo_default
     environment:

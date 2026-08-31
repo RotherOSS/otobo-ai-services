@@ -8,6 +8,7 @@ services:
         limits:
           memory: 4G      # Adjust based on usage
           cpus: '2.0'
+    restart: unless-stopped
     env_file:
       ../.env
     environment:
