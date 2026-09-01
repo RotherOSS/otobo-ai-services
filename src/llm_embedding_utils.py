@@ -277,7 +277,7 @@ async def put_embeddings(insert_input: IngestInput):
                 vec_ids = await embed_store.aadd_documents(all_splits)
                 await conn.executemany(
                     "INSERT INTO source_vector_index_map (collection_name, source_id, vector_id, labels) VALUES (%s, %s, %s, %s)",
-                    [(insert_input.type, source_id, vid, json.dumps(insert_input.labels or [])) for vid in vec_ids]
+                    [(collection_name, source_id, vid, json.dumps(insert_input.labels or [])) for vid in vec_ids]
                 )
                 logger.debug(f"wrote to index map: {source_id}, {[vid for vid in vec_ids]}")
         return {"success": True}
@@ -373,7 +373,7 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
             vec_ids = await embed_store.aadd_documents(embed_docs)
             await conn.executemany(
                 "INSERT INTO source_vector_index_map (collection_name, source_id, vector_id, labels) VALUES (%s, %s, %s, %s)",
-                [(batch_input.type, sid, vid, json.dumps(ll)) for sid, vid, ll in zip(source_ids, vec_ids, labels_list)]
+                [(collection_name, sid, vid, json.dumps(ll))for sid, vid, ll in zip(source_ids, vec_ids, labels_list)]
             )
 
         return {"success": True}
