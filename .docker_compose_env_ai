@@ -16,9 +16,20 @@ COMPOSE_PROJECT_NAME=otobo-ai
 # Additional services can be added by concatenating more files to COMPOSE_FILE.
 COMPOSE_PATH_SEPARATOR=:
 
-COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_otobo-docker.yml # if you run the OTOBO docker compose stack
-# COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_standalone.yml # Use this for independent setup (OTOBO native installation)
-# COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_otobo-docker.yml:docker-compose/otobo-ai_dev.yml # for development
+# if you run the OTOBO docker compose stack and want to use its mariadb for the ai-service
+COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_otobo-docker.yml
+#
+# if you run the OTOBO docker compose stack and want to maintain an independant mariadb for the ai-service (schema pre-applied)
+# COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_otobo-docker.yml:docker-compose/otobo-ai_db.yml
+#
+# if you run an independent setup (OTOBO native installation) and want to use its mariadb for the ai-service
+# COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_standalone.yml
+#
+# if you run an independent setup (OTOBO native installation) and want to maintain an independant mariadb for the ai-service (schema pre-applied)
+# COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_standalone.yml:docker-compose/otobo-ai_db.yml
+#
+# for development, expectes mariadb provided by OTOBO docker compose stack
+# COMPOSE_FILE=docker-compose/otobo-ai_base.yml:docker-compose/otobo-ai_otobo-docker.yml:docker-compose/otobo-ai_dev.yml
 
 # docker-compose/otobo-ai_openwebui.yml
 # Optional: Adds a chat interface to the stack.

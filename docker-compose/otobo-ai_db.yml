@@ -1,0 +1,30 @@
+# Docker compose file for "Roboto", the OTOBO AI service.
+# See also https://github.com/RotherOSS/otobo-ai-services
+
+services:
+  rag:
+    depends_on:
+      - mariadb
+    networks:
+      - otobo_ai
+
+  mariadb:
+    image: mariadb:11
+    environment:
+      MARIADB_DATABASE: ${OTOBO_AI_DB_NAME}
+      MARIADB_USER: ${OTOBO_AI_DB_USER}
+      MARIADB_PASSWORD: ${OTOBO_AI_DB_PW}
+      MARIADB_RANDOM_ROOT_PASSWORD: "yes"
+    volumes:
+      - mariadb_data:/var/lib/mysql
+      - ../src/init-sql:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+    networks:
+      - otobo_ai
+
+volumes:
+  mariadb_data:
+
+networks:
+  otobo_ai:
+    driver: bridge
