@@ -36,8 +36,8 @@ class GraphState(TypedDict):
     score: str | None
 
 
-# use_labels = ["default"]
-use_labels = []
+# if left empty, all labels are retrieved
+use_labels = ["default"]
 
 # Creates a retrieval function for the given input source and maps results to output key
 def retrieve_function_generator(query_input: QueryInput, output: str):
@@ -99,6 +99,7 @@ workflow = StateGraph(GraphState)
 
 # Define multiple retrieval steps for different sources
 # Do not set n_results to 0!
+# The here defined labels are currently not used anywhere
 workflow.add_node("retrieve_faq", retrieve_function_generator(
     QueryInput(query_text="", type="faqs", retrieve_fulltext=True, n_results=3, labels=[]), "faqs"))
 
