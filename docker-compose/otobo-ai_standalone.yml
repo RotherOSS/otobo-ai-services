@@ -5,7 +5,6 @@
 
 services:
   rag:
-    build: ..
     depends_on:
       - mariadb
     # Expose the port to localhost
