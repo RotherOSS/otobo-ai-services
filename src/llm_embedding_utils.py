@@ -7,7 +7,7 @@ import json
 
 # Local imports from the project
 from src.settings import AppSettings
-from src.db import get_pg_pool
+from src.db import get_db_pool
 from src.data_models.ingest import IngestInput, IngestInputBatch
 from src.data_models.retrieve import QueryInput
 from src.data_models.delete import DeleteInput
@@ -77,31 +77,32 @@ async def purge_collection(
     else:
         vector_store._client.delete_collection(collection_name)
 
-    pool = get_pg_pool()
+    pool = get_db_pool()
     async with pool.acquire() as conn:
         if labels:
+            labels_json = json.dumps(list(labels))
             await conn.execute(
                 """
                 DELETE FROM source_vector_index_map
-                WHERE collection_name = $1
-                  AND labels && $2::text[]
+                WHERE collection_name = %s
+                  AND JSON_OVERLAPS(labels, %s)
                 """,
                 collection_name,
-                labels,
+                labels_json,
             )
             await conn.execute(
                 """
-                DELETE FROM fulltext
-                WHERE collection_name = $1
-                  AND labels && $2::text[]
+                DELETE FROM fulltext_documents
+                WHERE collection_name = %s
+                  AND JSON_OVERLAPS(labels, %s)
                 """,
                 collection_name,
-                labels,
+                labels_json,
             )
 
         else:
-            await conn.execute("DELETE FROM source_vector_index_map WHERE collection_name = $1 ", collection_name)
-            await conn.execute("DELETE FROM fulltext WHERE collection_name = $1 ", collection_name)
+            await conn.execute("DELETE FROM source_vector_index_map WHERE collection_name = %s", collection_name)
+            await conn.execute("DELETE FROM fulltext_documents WHERE collection_name = %s", collection_name)
 
     return { "success": True  }
 
@@ -168,13 +169,13 @@ async def query_embeddings(retrieve: QueryInput):
         if retrieve.retrieve_fulltext:
             source_ids = {doc.metadata.get("source_id") for doc in results if doc.metadata.get("source_id")}
             if source_ids:
-                pool = get_pg_pool()
+                pool = get_db_pool()
                 async with pool.acquire() as conn:
                     rows = await conn.fetch(
-                        f"SELECT source_id, text FROM fulltext WHERE collection_name = $1 "
-                        f"AND source_id = ANY($2::text[]);",
+                        "SELECT source_id, text FROM fulltext_documents WHERE collection_name = %s "
+                        "AND source_id IN %s",
                         collection_name,
-                        list(source_ids)
+                        tuple(source_ids)
                     )
                 id_to_text = {row["source_id"]: row["text"] for row in rows}
 
@@ -192,8 +193,6 @@ async def query_embeddings(retrieve: QueryInput):
 
 @logger.catch(reraise=True)
 async def _purge_source_ids(conn, vector_store, collection_name: str, source_ids: list[str]):
-    # Remove any existing vectors/fulltext for these source_ids so re-ingesting overwrites them
-    # instead of colliding with the (collection_name, source_id) primary keys.
     source_ids = list(dict.fromkeys(sid for sid in source_ids if sid))
     if not source_ids:
         return
@@ -202,25 +201,25 @@ async def _purge_source_ids(conn, vector_store, collection_name: str, source_ids
         """
         SELECT vector_id
         FROM source_vector_index_map
-        WHERE collection_name = $1
-          AND source_id = ANY($2::text[])
+        WHERE collection_name = %s
+          AND source_id IN %s
         """,
         collection_name,
-        source_ids,
+        tuple(source_ids),
     )
     vec_ids = [r["vector_id"] for r in rows]
     if vec_ids:
         vector_store.delete(ids=vec_ids)
 
     await conn.execute(
-        "DELETE FROM source_vector_index_map WHERE collection_name = $1 AND source_id = ANY($2::text[])",
+        "DELETE FROM source_vector_index_map WHERE collection_name = %s AND source_id IN %s",
         collection_name,
-        source_ids,
+        tuple(source_ids),
     )
     await conn.execute(
-        "DELETE FROM fulltext WHERE collection_name = $1 AND source_id = ANY($2::text[])",
+        "DELETE FROM fulltext_documents WHERE collection_name = %s AND source_id IN %s",
         collection_name,
-        source_ids,
+        tuple(source_ids),
     )
 
 
@@ -233,7 +232,7 @@ async def put_embeddings(insert_input: IngestInput):
 
         # Optional: store fulltext in relational DB for later retrieval
 
-        pool = get_pg_pool()
+        pool = get_db_pool()
         async with pool.acquire() as conn:
             vector_store = get_vectorstore(with_embedding=False, collection_name=collection_name)
             await _purge_source_ids(conn, vector_store, collection_name, [insert_input.source_id])
@@ -245,12 +244,12 @@ async def put_embeddings(insert_input: IngestInput):
                 else:
                     fulltext = "\n\n".join([f"{item.type}: {item.text}" for item in insert_input.content])
 
-                await conn.fetchrow(
-                    "INSERT INTO fulltext (collection_name, source_id, text, labels) VALUES ($1, $2, $3, $4)",
+                await conn.execute(
+                    "INSERT INTO fulltext_documents (collection_name, source_id, text, labels) VALUES (%s, %s, %s, %s)",
                     collection_name,
                     insert_input.source_id,
                     fulltext,
-                    insert_input.labels if insert_input.labels else []
+                    json.dumps(insert_input.labels if insert_input.labels else [])
                 )
 
             # Select content types to embed (configurable)
@@ -277,8 +276,8 @@ async def put_embeddings(insert_input: IngestInput):
                 embed_store = get_vectorstore(with_embedding=True, collection_name=collection_name)
                 vec_ids = await embed_store.aadd_documents(all_splits)
                 await conn.executemany(
-                    "INSERT INTO source_vector_index_map (collection_name, source_id, vector_id, labels) VALUES ($1, $2, $3, $4)",
-                    [(insert_input.type, source_id, vid, insert_input.labels) for vid in vec_ids]
+                    "INSERT INTO source_vector_index_map (collection_name, source_id, vector_id, labels) VALUES (%s, %s, %s, %s)",
+                    [(collection_name, source_id, vid, json.dumps(insert_input.labels or [])) for vid in vec_ids]
                 )
                 logger.debug(f"wrote to index map: {source_id}, {[vid for vid in vec_ids]}")
         return {"success": True}
@@ -298,7 +297,7 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
 
         labels = []
 
-        pool = get_pg_pool()
+        pool = get_db_pool()
         async with pool.acquire() as conn:
             vector_store = get_vectorstore(with_embedding=False, collection_name=collection_name)
             batch_source_ids = [content_set.source_id for content_set in batch_input.content]
@@ -327,20 +326,9 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
                 if not labels:
                     labels = [[]] * len(fulltext_texts)
                 labels_json = [json.dumps(l) for l in labels]
-                await conn.fetch(
-                    """
-                    INSERT INTO fulltext (collection_name, source_id, text, labels)
-                    SELECT
-                        $1,
-                        s.source_id,
-                        s.text,
-                        ARRAY(SELECT jsonb_array_elements_text(s.labels))
-                    FROM unnest($2::text[], $3::text[], $4::jsonb[]) AS s(source_id, text, labels)
-                    """,
-                    collection_name,
-                    source_ids,
-                    fulltext_texts,
-                    labels_json
+                await conn.executemany(
+                    "INSERT INTO fulltext_documents (collection_name, source_id, text, labels) VALUES (%s, %s, %s, %s)",
+                    [(collection_name, sid, text, lbl) for sid, text, lbl in zip(source_ids, fulltext_texts, labels_json)]
                 )
             elif batch_input.has_labels:
                 for content_set in batch_input.content:
@@ -384,8 +372,8 @@ async def put_embeddings_batch(batch_input: IngestInputBatch):
             logger.info( f"embedding into {collection_name} : {embed_docs}" )
             vec_ids = await embed_store.aadd_documents(embed_docs)
             await conn.executemany(
-                "INSERT INTO source_vector_index_map (collection_name, source_id, vector_id, labels) VALUES ($1, $2, $3, $4)",
-                [(batch_input.type, sid, vid, ll) for sid, vid, ll in zip(source_ids, vec_ids, labels_list)]
+                "INSERT INTO source_vector_index_map (collection_name, source_id, vector_id, labels) VALUES (%s, %s, %s, %s)",
+                [(collection_name, sid, vid, json.dumps(ll))for sid, vid, ll in zip(source_ids, vec_ids, labels_list)]
             )
 
         return {"success": True}
@@ -434,7 +422,7 @@ async def delete_embeddings_by_id(delete: DeleteInput):
     Delete embedding entries by source IDs:
     1) look up vector IDs in source_vector_index_map
     2) delete those vectors from Chroma
-    3) delete the mapping rows from Postgres
+    3) delete the mapping rows from MariaDB
     """
     try:
         collection_name = delete.type or settings.OTOBO_AI_CHROMA_DEF_COL_NAME
@@ -443,17 +431,17 @@ async def delete_embeddings_by_id(delete: DeleteInput):
         if not source_ids:
             return {"success": False, "error": "No source IDs found"}
 
-        pool = get_pg_pool()
+        pool = get_db_pool()
         async with pool.acquire() as conn:
             rows = await conn.fetch(
                 """
                 SELECT vector_id
                 FROM source_vector_index_map
-                WHERE collection_name = $1
-                  AND source_id = ANY($2::text[])
+                WHERE collection_name = %s
+                  AND source_id IN %s
                 """,
                 collection_name,
-                source_ids,
+                tuple(source_ids),
             )
             vec_ids = [r["vector_id"] for r in rows]
 
@@ -469,24 +457,24 @@ async def delete_embeddings_by_id(delete: DeleteInput):
             await conn.execute(
                 """
                 DELETE FROM source_vector_index_map
-                WHERE collection_name = $1
-                  AND source_id = ANY($2::text[])
+                WHERE collection_name = %s
+                  AND source_id IN %s
                 """,
                 collection_name,
-                source_ids,
+                tuple(source_ids),
             )
             logger.debug(f"deleted in source_vector_index_map: {source_ids}, {vec_ids}")
 
             await conn.execute(
                 """
-                DELETE FROM fulltext
-                WHERE collection_name = $1
-                  AND source_id = ANY($2::text[])
+                DELETE FROM fulltext_documents
+                WHERE collection_name = %s
+                  AND source_id IN %s
                 """,
                 collection_name,
-                source_ids,
+                tuple(source_ids),
             )
-            logger.debug(f"deleted in fulltext: {source_ids}, {vec_ids}")
+            logger.debug(f"deleted in fulltext_documents: {source_ids}, {vec_ids}")
         return {
             "success": True
         }

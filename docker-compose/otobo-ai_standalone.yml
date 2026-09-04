@@ -5,7 +5,6 @@
 
 services:
   rag:
-    build: ..
     # Expose the port to localhost
     ports:
       - "127.0.0.1:${OTOBO_AI_PORT:-8000}:${OTOBO_AI_PORT:-8000}"
