@@ -8,10 +8,6 @@ services:
     networks:
       - otobo_default
 
-  postgres:
-    networks:
-      - otobo_default
-
 networks:
   otobo_default:
     external: true

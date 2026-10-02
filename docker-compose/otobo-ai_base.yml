@@ -7,8 +7,6 @@ services:
   rag:
     image: ${OTOBO_IMAGE_OTOBO_AI:-rotheross/otobo-ai-services:latest}
     restart: unless-stopped
-    depends_on:
-      - postgres
     env_file:
       - ../.env
     environment:
@@ -24,17 +22,5 @@ services:
       --port ${OTOBO_AI_PORT}
       --loop asyncio
 
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: ${OTOBO_AI_PG_DB}
-      POSTGRES_USER: ${OTOBO_AI_PG_USER}
-      POSTGRES_PASSWORD: ${OTOBO_AI_PG_PW}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ../src/init-sql:/docker-entrypoint-initdb.d
-    restart: unless-stopped
-
 volumes:
   chromadb_data: {}
-  postgres_data: {}
